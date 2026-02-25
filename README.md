@@ -184,6 +184,7 @@ sequenceDiagram
 The project compares multiple linear models:
 
 - KNN
+- KNN With Inver Class Weighting
 - Logistic Regression with manual class weights (business-priority tuning)
 - Logistic Regression with `class_weight='balanced'` (automatic inverse-frequency weighting)
 - SGD Classifier
@@ -195,6 +196,7 @@ The project compares multiple linear models:
 - Ada Boost Classifier
 - Multinomial Naive Bayes
 - Complement Naive Bayes
+- Bernoulli Naive Bayes
 - MLP (Multi-layer Perceptron) Classifier
 - LightGBM Classifier
 - XGBoost Classifier
@@ -226,7 +228,8 @@ The confusion matrix is also saved as a PDF file for each model run.
 
 You can find the generated confusion matrices here:
 
-- [knn](confusion_matrix_KNN.pdf)
+- [KNN](confusion_matrix_KNN.pdf)
+- [KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.pdf)
 - [Logistic Regression (Manual Weights)](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
 - [Logistic Regression (Balanced)](confusion_matrix_Logistic_Regression_Balanced.pdf)
 - [SGD Classifier](confusion_matrix_SGD_Classifier.pdf)
@@ -238,6 +241,7 @@ You can find the generated confusion matrices here:
 - [Ada Boost Classifier](confusion_matrix_Ada_Boost_Classifier.pdf)
 - [Multinomial Naive Bayes](confusion_matrix_Multinomial_Naive_Bayes.pdf)
 - [Complement Naive Bayes](confusion_matrix_Complement_Naive_Bayes.pdf)
+- [Bernoulli Naive Bayes](confusion_matrix_Bernoulli_Naive_Bayes.pdf)
 - [MLP (Multi-layer Perceptron) Classifier](confusoin_matrix_MLP_Classifier.pdf)
 - [LightGBM Classifier](confusion_matrix_LightGBM_Classifier.pdf)
 - [XGBoost Classifier](confusion_matrix_XGBoost_Classifier.pdf)
@@ -248,6 +252,10 @@ You can find the generated confusion matrices here:
 #### KNN
 
 ![KNN](confusion_matrix_KNN.png)
+
+#### KNN With Inverse Class Weighting
+
+![KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.png)
 
 #### Logistic Regression (Manual Weights)
 
@@ -292,6 +300,10 @@ You can find the generated confusion matrices here:
 #### Complement Naive Bayes
 
 ![Complement Naive Bayes](confusion_matrix_Complement_Naive_Bayes.png)
+
+#### Bernoulli Naive Bayes
+
+![Bernoulli Naive Bayes](confusion_matrix_Bernoulli_Naive_Bayes.png)
 
 #### MLP (Multi-layer Perceptron) Classifier
 

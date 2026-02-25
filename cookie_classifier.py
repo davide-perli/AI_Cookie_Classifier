@@ -1,17 +1,18 @@
 import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, lightgbm as lgb, xgboost as xgb, catboost
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import LabelEncoder
-from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.linear_model import LogisticRegression, SGDClassifier, Perceptron, RidgeClassifier, RidgeClassifierCV
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, StackingClassifier, VotingClassifier
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import MultinomialNB, ComplementNB
+from sklearn.naive_bayes import MultinomialNB, ComplementNB, BernoulliNB
 from sklearn.neural_network import MLPClassifier
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_selection import SelectKBest, chi2
 
 rows = []
@@ -147,6 +148,8 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # print("\n" + "="*80)
 # print("KNN WITH INVERSE CLASS WEIGHTING")
 # print("="*80)
+
+# # 60,02%
 
 # knn = KNeighborsClassifier(n_neighbors=4, metric='cosine', weights='distance', algorithm='brute')
 # knn.fit(X_train_encoded, y_train)
@@ -436,6 +439,25 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # cnb_test_pred = cnb.predict(X_test_small_cnb)
 # evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 
+print("\n" + "="*80)
+print("TRYING: Bernoulli Naive Bayes")
+print("="*80)
+
+# 93,75%
+X_train_bin = (X_train_encoded > 0).astype(np.int8)
+X_test_bin = (X_test_encoded > 0).astype(np.int8)
+
+selector_bnb = SelectKBest(chi2, k=22000) 
+X_train_small_bnb = selector_bnb.fit_transform(X_train_bin, y_train)
+X_test_small_bnb = selector_bnb.transform(X_test_bin)
+
+bnb = BernoulliNB(alpha=1e-3, binarize=None)  
+bnb.fit(X_train_small_bnb, y_train)
+
+bnb_train_pred = bnb.predict(X_train_small_bnb)
+bnb_test_pred = bnb.predict(X_test_small_bnb)
+evaluate_model("Bernoulli Naive Bayes", y_test, bnb_test_pred, bnb_train_pred)
+
 # print("\n" + "="*80)
 # print("TRYING: Stacking Classifier")
 # print("="*80)
@@ -557,61 +579,54 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # lgbm_test_pred = lgbm.predict(X_test_encoded)
 # evaluate_model("LightGBM Classifier", y_test, lgbm_test_pred, lgbm_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: XGBoost Classifier")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: XGBoost Classifier")
+# print("="*80)
 
-# 97,18%
+# # 97,52%
 
-selector_xgb = SelectKBest(chi2, k=8000)
-X_train_small_xgb = selector_xgb.fit_transform(X_train_encoded, y_train)
-X_test_small_xgb = selector_xgb.transform(X_test_encoded)
+# selector_xgb = SelectKBest(chi2, k=8000)
+# X_train_small_xgb = selector_xgb.fit_transform(X_train_encoded, y_train)
+# X_test_small_xgb = selector_xgb.transform(X_test_encoded)
 
-xgb_label_encoder = LabelEncoder()
-y_train_xgb_full = xgb_label_encoder.fit_transform(y_train)
-y_test_xgb = xgb_label_encoder.transform(y_test)
+# xgb_label_encoder = LabelEncoder()
+# y_train_xgb_full = xgb_label_encoder.fit_transform(y_train)
+# y_test_xgb = xgb_label_encoder.transform(y_test)
 
-X_train_xgb, X_val_xgb, y_train_xgb, y_val_xgb = train_test_split(
-    X_train_small_xgb,
-    y_train_xgb_full,
-    test_size=0.1,
-    random_state=42
-)
+# X_train_xgb, X_val_xgb, y_train_xgb, y_val_xgb = train_test_split(
+#     X_train_small_xgb,
+#     y_train_xgb_full,
+#     test_size=0.1,
+#     random_state=42
+# )
 
-xgb_clf = xgb.XGBClassifier(
-    objective='multi:softmax',
-    num_class=len(xgb_label_encoder.classes_),
-    n_estimators=300,
-    max_depth=8,
-    # learning_rate=0.2,
-    early_stopping_rounds=20,
-    tree_method='hist',
-    random_state=0,
-    n_jobs=-1,
-    eval_metric='mlogloss'
-)
+# xgb_clf = xgb.XGBClassifier(
+#     objective='multi:softmax',
+#     num_class=len(xgb_label_encoder.classes_),
+#     n_estimators=300,
+#     max_depth=10,
+#     # learning_rate=0.2,
+#     early_stopping_rounds=20,
+#     tree_method='hist',
+#     random_state=0,
+#     n_jobs=-1,
+#     eval_metric='mlogloss'
+# )
 
-xgb_clf.fit(
-    X_train_xgb,
-    y_train_xgb,
-    eval_set=[(X_val_xgb, y_val_xgb)],
-    verbose=30
-)
+# xgb_clf.fit(
+#     X_train_xgb,
+#     y_train_xgb,
+#     eval_set=[(X_val_xgb, y_val_xgb)],
+#     verbose=30
+# )
 
-xgb_train_pred_int = xgb_clf.predict(X_train_small_xgb)
-xgb_test_pred_int = xgb_clf.predict(X_test_small_xgb)
+# xgb_train_pred_int = xgb_clf.predict(X_train_small_xgb)
+# xgb_test_pred_int = xgb_clf.predict(X_test_small_xgb)
 
-xgb_train_pred = xgb_label_encoder.inverse_transform(xgb_train_pred_int)
-xgb_test_pred = xgb_label_encoder.inverse_transform(xgb_test_pred_int)
+# xgb_train_pred = xgb_label_encoder.inverse_transform(xgb_train_pred_int)
+# xgb_test_pred = xgb_label_encoder.inverse_transform(xgb_test_pred_int)
 
-evaluate_model("XGBoost Classifier", y_test, xgb_test_pred, xgb_train_pred)
-
-
-# RidgeClassifier / RidgeClassifierCV (very strong, fast linear baseline for sparse TF-IDF)
-# Perceptron (simple linear model, sometimes surprisingly competitive)
-# NearestCentroid (cheap baseline; good as a sanity check)
-# BernoulliNB (can work well if you binarize features)
-# CalibratedClassifierCV(LinearSVC) (if you want better class probabilities from SVM-like performance)
+# evaluate_model("XGBoost Classifier", y_test, xgb_test_pred, xgb_train_pred)
 
 
 # print("\n" + "="*80)
@@ -657,3 +672,155 @@ evaluate_model("XGBoost Classifier", y_test, xgb_test_pred, xgb_train_pred)
 # catc_train_pred = catc.predict(X_train_small_cat)
 # catc_test_pred = catc.predict(X_test_small_cat)
 # evaluate_model("CatBoost Classifier", y_test, catc_test_pred, catc_train_pred)
+
+print("\n" + "="*80)
+print("TRYING: Perceptron")
+print("="*80)
+
+perc = Perceptron(
+    penalty=None,
+    alpha=1e-3,
+    l1_ratio=0.15,
+    fit_intercept=True,
+    max_iter=100,
+    shuffle=True,
+    verbose=0,
+    n_jobs=-1,
+    random_state=0,
+    early_stopping=True,
+    validation_fraction=0.1,
+    n_iter_no_change=10,
+    class_weight='balanced'
+)
+
+perc.fit(X_train_encoded, y_train)
+perc_train_pred = perc.predict(X_train_encoded)
+perc_test_pred = perc.predict(X_test_encoded)
+evaluate_model("Perceptron", y_test, perc_test_pred, perc_train_pred)
+
+
+print("\n" + "="*80)
+print("TRYING: Perceptron With Manual Weights")
+print("="*80)
+
+class_weight_map = {
+    'Necessary': 5.0,      
+    'Preferences': 2.0,
+    'Statistics': 1.5,
+    'Marketing': 1.0,    
+} 
+
+perc_mw = Perceptron(
+    penalty=None,
+    alpha=1e-3,
+    l1_ratio=0.15,
+    fit_intercept=True,
+    max_iter=100,
+    shuffle=True,
+    verbose=0,
+    n_jobs=-1,
+    random_state=0,
+    early_stopping=True,
+    validation_fraction=0.1,
+    n_iter_no_change=10,
+    class_weight=class_weight_map
+)
+
+perc_mw.fit(X_train_encoded, y_train)
+perc_mw_train_pred = perc_mw.predict(X_train_encoded)
+perc_mw_test_pred = perc_mw.predict(X_test_encoded)
+evaluate_model("Perceptron", y_test, perc_mw_test_pred, perc_mw_train_pred)
+
+
+print("\n" + "="*80)
+print("TRYING: Nearest Centroid")
+print("="*80)
+
+nc = NearestCentroid(metric='euclidean', shrink_threshold=None, priors='uniform')
+
+nc.fit(X_train_encoded, y_train)
+nc_train_pred = nc.predict(X_train_encoded)
+nc_test_pred = nc.predict(X_test_encoded)
+evaluate_model("Nearest Centroind", y_test, nc_test_pred, nc_train_pred)
+
+print("\n" + "="*80)
+print("TRYING: Ridge Classifier")
+print("="*80)
+
+rc = RidgeClassifier(
+    alpha=1.0,
+    class_weight='balanced',
+    solver='auto',
+    random_state=0
+)
+
+rc.fit(X_train_encoded, y_train)
+rc_train_pred = rc.predict(X_train_encoded)
+rc_test_pred = rc.predict(X_test_encoded)
+evaluate_model("Ridge CLassifier", y_test, rc_test_pred, rc_train_pred)
+
+print("\n" + "="*80)
+print("TRYING: Ridge Classifier With Manual Weights")
+print("="*80)
+
+class_weight_map = {
+    'Necessary': 5.0,      
+    'Preferences': 2.0,
+    'Statistics': 1.5,
+    'Marketing': 1.0,    
+} 
+
+rc_mw = RidgeClassifier(
+    alpha=1.0,
+    class_weight=class_weight_map,
+    solver='auto',
+    random_state=0
+)
+
+rc_mw.fit(X_train_encoded, y_train)
+rc_mw_train_pred = rc_mw.predict(X_train_encoded)
+rc_mw_test_pred = rc_mw.predict(X_test_encoded)
+evaluate_model("Ridge CLassifier Manual Weights", y_test, rc_mw_test_pred, rc_mw_train_pred)
+
+print("\n" + "="*80)
+print("TRYING: Ridge Classifier CV")
+print("="*80)
+
+rccv = RidgeClassifierCV(
+    alphas=(0.1, 1.0, 10.0),
+    scoring=None,
+    cv=None,
+    class_weight='balanced'
+)
+
+rccv.fit(X_train_encoded, y_train)
+rccv_train_pred = rccv.predict(X_train_encoded)
+rccv_test_pred = rccv.predict(X_test_encoded)
+evaluate_model("Ridge Clasifier CV", y_test, rccv_test_pred, rccv_train_pred)
+
+print("\n" + "="*80)
+print("TRYING: Ridge Classifier CV Manual Weights")
+print("="*80)
+
+rccv_mw = RidgeClassifierCV(
+    alphas=(0.1, 1.0, 10.0),
+    scoring=None,
+    cv=None,
+    class_weight='balanced'
+)
+
+rccv_mw.fit(X_train_encoded, y_train)
+rccv_mw_train_pred = rccv_mw.predict(X_train_encoded)
+rccv_mw_test_pred = rccv_mw.predict(X_test_encoded)
+evaluate_model("Ridge Clasifier CV Manual Weights", y_test, rccv_mw_test_pred, rccv_mw_train_pred)
+
+print("\n" + "="*80)
+print("TRYING: Calibrated Classifier CV")
+print("="*80)
+
+cccv = CalibratedClassifierCV(method='sigmoid', cv=None, n_jobs=-1)
+
+cccv.fit(X_train_encoded, y_train)
+cccv_train_pred = cccv.predict(X_train_encoded)
+cccv_test_pred = cccv.predict(X_test_encoded)
+evaluate_model("Calibrated Classifier CV", y_test, cccv_test_pred, cccv_train_pred)
