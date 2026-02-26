@@ -342,7 +342,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # print("TRYING: RandomForest")
 # print("="*80)
 
-# # 92,02%
+# # 98,18%
 
 # rf = RandomForestClassifier(
 #     n_estimators=300,
@@ -459,107 +459,107 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # bnb_test_pred = bnb.predict(X_test_small_bnb)
 # evaluate_model("Bernoulli Naive Bayes", y_test, bnb_test_pred, bnb_train_pred)
 
-# print("\n" + "="*80)
-# print("TRYING: Stacking Classifier")
-# print("="*80)
+print("\n" + "="*80)
+print("TRYING: Stacking Classifier")
+print("="*80)
 
-# base_estimators = [
-#     ("lr", LogisticRegression(
-#         max_iter=3000,
-#         solver="saga",
-#         class_weight="balanced",
-#         random_state=0
-#     )),
-#     ("sgd", SGDClassifier(
-#         loss="log_loss",
-#         alpha=1e-5,
-#         class_weight="balanced",
-#         max_iter=2000,
-#         tol=1e-3,
-#         n_jobs=-1,
-#         random_state=0
-#     )),
-#     ("cnb", ComplementNB(alpha=0.1))
-# ]
+base_estimators = [
+    ("lr", LogisticRegression(
+        max_iter=3000,
+        solver="saga",
+        class_weight="balanced",
+        random_state=0
+    )),
+    ("sgd", SGDClassifier(
+        loss="log_loss",
+        alpha=1e-5,
+        class_weight="balanced",
+        max_iter=2000,
+        tol=1e-3,
+        n_jobs=-1,
+        random_state=0
+    )),
+    ("cnb", ComplementNB(alpha=0.1))
+]
 
-# meta_model = LogisticRegression(
-#     max_iter=2000,
-#     solver="lbfgs",
-#     class_weight="balanced",
-#     random_state=0
-# )
+meta_model = LogisticRegression(
+    max_iter=2000,
+    solver="lbfgs",
+    class_weight="balanced",
+    random_state=0
+)
 
-# stack_clf = StackingClassifier(
-#     estimators=base_estimators,
-#     final_estimator=meta_model,
-#     cv=3,
-#     n_jobs=-1,
-#     passthrough=False
-# )
+stack_clf = StackingClassifier(
+    estimators=base_estimators,
+    final_estimator=meta_model,
+    cv=3,
+    n_jobs=-1,
+    passthrough=False
+)
 
-# stack_clf.fit(X_train_encoded, y_train)
-# stack_train_pred = stack_clf.predict(X_train_encoded)
-# stack_test_pred = stack_clf.predict(X_test_encoded)
-# evaluate_model("Stacking Classifier", y_test, stack_test_pred, stack_train_pred)
+stack_clf.fit(X_train_encoded, y_train)
+stack_train_pred = stack_clf.predict(X_train_encoded)
+stack_test_pred = stack_clf.predict(X_test_encoded)
+evaluate_model("Stacking Classifier", y_test, stack_test_pred, stack_train_pred)
 
-# print("\n" + "="*80)
-# print("TRYING: Voting Classifier")
-# print("="*80)
+print("\n" + "="*80)
+print("TRYING: Voting Classifier")
+print("="*80)
 
-# voting_clf = VotingClassifier(
-#     estimators=[
-#         ("lr", LogisticRegression(
-#             max_iter=3000,
-#             solver="saga",
-#             class_weight="balanced",
-#             random_state=0
-#         )),
-#         ("sgd", SGDClassifier(
-#             loss="log_loss",
-#             alpha=1e-5,
-#             class_weight="balanced",
-#             max_iter=2000,
-#             tol=1e-3,
-#             random_state=0
-#         )),
-#         ("cnb", ComplementNB(alpha=0.1))
-#     ],
-#     voting="hard",   
-#     n_jobs=-1
-# )
+voting_clf = VotingClassifier(
+    estimators=[
+        ("lr", LogisticRegression(
+            max_iter=3000,
+            solver="saga",
+            class_weight="balanced",
+            random_state=0
+        )),
+        ("sgd", SGDClassifier(
+            loss="log_loss",
+            alpha=1e-5,
+            class_weight="balanced",
+            max_iter=2000,
+            tol=1e-3,
+            random_state=0
+        )),
+        ("cnb", ComplementNB(alpha=0.1))
+    ],
+    voting="hard",   
+    n_jobs=-1
+)
 
-# voting_clf.fit(X_train_encoded, y_train)
-# voting_train_pred = voting_clf.predict(X_train_encoded)
-# voting_test_pred = voting_clf.predict(X_test_encoded)
-# evaluate_model("Voting Classifier", y_test, voting_test_pred, voting_train_pred)
+voting_clf.fit(X_train_encoded, y_train)
+voting_train_pred = voting_clf.predict(X_train_encoded)
+voting_test_pred = voting_clf.predict(X_test_encoded)
+evaluate_model("Voting Classifier", y_test, voting_test_pred, voting_train_pred)
 
-# print("\n" + "="*80)
-# print("TRYING: MLP Classifier")
-# print("="*80)
+print("\n" + "="*80)
+print("TRYING: MLP Classifier")
+print("="*80)
 
-# mlpc = MLPClassifier(
-#     hidden_layer_sizes=(200,),   
-#     activation='relu',
-#     solver='adam',              
-#     alpha=1e-5,                 
-#     batch_size=512,              
-#     learning_rate_init=0.001,
-#     max_iter=200,
-#     early_stopping=True,
-#     validation_fraction=0.1,
-#     n_iter_no_change=5,
-#     random_state=42
-# )
+mlpc = MLPClassifier(
+    hidden_layer_sizes=(200,),   
+    activation='relu',
+    solver='adam',              
+    alpha=1e-5,                 
+    batch_size=512,              
+    learning_rate_init=0.001,
+    max_iter=200,
+    early_stopping=True,
+    validation_fraction=0.1,
+    n_iter_no_change=5,
+    random_state=42
+)
 
-# mlp_label_encoder = LabelEncoder()
-# y_train_mlp = mlp_label_encoder.fit_transform(y_train)
+mlp_label_encoder = LabelEncoder()
+y_train_mlp = mlp_label_encoder.fit_transform(y_train)
 
-# mlpc.fit(X_train_encoded, y_train_mlp)
-# mlpc_train_pred_int = mlpc.predict(X_train_encoded)
-# mlpc_test_pred_int = mlpc.predict(X_test_encoded)
-# mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
-# mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
-# evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
+mlpc.fit(X_train_encoded, y_train_mlp)
+mlpc_train_pred_int = mlpc.predict(X_train_encoded)
+mlpc_test_pred_int = mlpc.predict(X_test_encoded)
+mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
+mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
+evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: LightGBM Classifier")

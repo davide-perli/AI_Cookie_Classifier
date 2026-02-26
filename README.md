@@ -206,6 +206,8 @@ The project compares multiple linear models:
 - Perceptron with manual class weights
 - Ridge Classifier
 - Ridge CLassifier With Manual Weights
+- Stacking Classifier
+- Voting Classifier
 
 Linear models work well for high-dimensional sparse TF-IDF features and scale better than many non-linear models on this dataset size.
 
@@ -247,7 +249,7 @@ You can find the generated confusion matrices here:
 - [Multinomial Naive Bayes](confusion_matrix_Multinomial_Naive_Bayes.pdf)
 - [Complement Naive Bayes](confusion_matrix_Complement_Naive_Bayes.pdf)
 - [Bernoulli Naive Bayes](confusion_matrix_Bernoulli_Naive_Bayes.pdf)
-- [MLP (Multi-layer Perceptron) Classifier](confusoin_matrix_MLP_Classifier.pdf)
+- [MLP (Multi-layer Perceptron) Classifier](confusion_matrix_MLP_Classifier.pdf)
 - [LightGBM Classifier](confusion_matrix_LightGBM_Classifier.pdf)
 - [XGBoost Classifier](confusion_matrix_XGBoost_Classifier.pdf)
 - [CatBoost Classifier](confusion_matrix_CatBoost_Classifier.pdf)
@@ -256,6 +258,8 @@ You can find the generated confusion matrices here:
 - [Perceptron With Manual Weights](confusion_matrix_Perceptron_With_Manual_Weights.pdf)
 - [Ridge CLassifier](confusion_matrix_Ridge_CLassifier.pdf)
 - [Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.pdf)
+- [Stacking Classifier](confusion_matrix_Stacking_Classifier.pdf)
+- [Voting Classifier](confusion_matrix_Voting_Classifier.pdf)
 
 ### Confusion matrices (preview images)
 
@@ -317,7 +321,7 @@ You can find the generated confusion matrices here:
 
 #### MLP (Multi-layer Perceptron) Classifier
 
-![MLP (Multi-layer Perceptron) Classifier](confusoin_matrix_MLP_Classifier.png)
+![MLP (Multi-layer Perceptron) Classifier](confusion_matrix_MLP_Classifier.png)
 
 #### LightGBM Classifier
 ![LightGBM Classifier](confusion_matrix_LightGBM_Classifier.png)
@@ -350,6 +354,13 @@ You can find the generated confusion matrices here:
 
 ![Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.png)
 
+#### Stacking Classifier
+
+![Stacking Classifier](confusion_matrix_Stacking_Classifier.png)
+
+#### Voting Classifier
+
+![Voting Classifier](confusion_matrix_Voting_Classifier.png)
 
 ### How to read the confusion matrix values
 
