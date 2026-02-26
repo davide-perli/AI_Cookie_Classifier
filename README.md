@@ -185,14 +185,14 @@ The project compares multiple linear models:
 
 - KNN
 - KNN With Inver Class Weighting
-- Logistic Regression with manual class weights (business-priority tuning)
-- Logistic Regression with `class_weight='balanced'` (automatic inverse-frequency weighting)
+- Logistic Regression
+- Logistic Regression With Manual Weights
 - SGD Classifier
 - Passive Aggressive Classifier
 - LinearSVC
-- LinearSVC with manual class weights
+- LinearSVC With Manual Weights
 - Random Forest Classifier
-- Decision Tree Classifier with manual weights
+- Decision Tree Classifier With Manual Weights
 - Ada Boost Classifier
 - Multinomial Naive Bayes
 - Complement Naive Bayes
@@ -201,6 +201,11 @@ The project compares multiple linear models:
 - LightGBM Classifier
 - XGBoost Classifier
 - CatBoost Classifier
+- Nearest Centroid
+- Perceptron
+- Perceptron with manual class weights
+- Ridge Classifier
+- Ridge CLassifier With Manual Weights
 
 Linear models work well for high-dimensional sparse TF-IDF features and scale better than many non-linear models on this dataset size.
 
@@ -230,14 +235,14 @@ You can find the generated confusion matrices here:
 
 - [KNN](confusion_matrix_KNN.pdf)
 - [KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.pdf)
-- [Logistic Regression (Manual Weights)](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
-- [Logistic Regression (Balanced)](confusion_matrix_Logistic_Regression_Balanced.pdf)
+- [Logistic Regression](confusion_matrix_Logistic_Regression_Balanced.pdf)
+- [Logistic Regression With Manual Weights)](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
 - [SGD Classifier](confusion_matrix_SGD_Classifier.pdf)
 - [Passive Aggressive Classifier](confusion_matrix_Passive_Aggressive_Classifier.pdf)
 - [LinearSVC](confusion_matrix_LinearSVC.pdf)
 - [LinearSVC Manual Weights](confusion_matrix_LinearSVC_Manual_Weights.pdf)
 - [Random Forest Classifier](confusion_matrix_RandomForest_CLassifier.pdf)
-- [Decision Tree Classifier (Manual Weights)](confusion_matrix_Decision_Tree_Classifier.pdf)
+- [Decision Tree Classifier With Manual Weights](confusion_matrix_Decision_Tree_Classifier.pdf)
 - [Ada Boost Classifier](confusion_matrix_Ada_Boost_Classifier.pdf)
 - [Multinomial Naive Bayes](confusion_matrix_Multinomial_Naive_Bayes.pdf)
 - [Complement Naive Bayes](confusion_matrix_Complement_Naive_Bayes.pdf)
@@ -246,6 +251,11 @@ You can find the generated confusion matrices here:
 - [LightGBM Classifier](confusion_matrix_LightGBM_Classifier.pdf)
 - [XGBoost Classifier](confusion_matrix_XGBoost_Classifier.pdf)
 - [CatBoost Classifier](confusion_matrix_CatBoost_Classifier.pdf)
+- [Nearest Centroid](confusion_matrix_Nearest_Centroind.pdf)
+- [Perceptron](confusion_matrix_Perceptron.pdf)
+- [Perceptron With Manual Weights](confusion_matrix_Perceptron_With_Manual_Weights.pdf)
+- [Ridge CLassifier](confusion_matrix_Ridge_CLassifier.pdf)
+- [Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.pdf)
 
 ### Confusion matrices (preview images)
 
@@ -281,9 +291,9 @@ You can find the generated confusion matrices here:
 
 ![LinearSVC Manual Weights](confusion_matrix_LinearSVC_Manual_Weights.png)
 
-#### Random Forest Classifier (Manual Weights)
+#### Random Forest Classifier
 
-![Random Forest Classifier (Manual Weights)](confusion_matrix_RandomForest_Classifier.png))
+![Random Forest Classifier](confusion_matrix_RandomForest_Classifier.png))
 
 #### Decision Tree Classifier (Manual Weights)
 
@@ -313,10 +323,33 @@ You can find the generated confusion matrices here:
 ![LightGBM Classifier](confusion_matrix_LightGBM_Classifier.png)
 
 #### XGBoost Classifier
+
 ![XGBoost Classifier](confusion_matrix_XGBoost_Classifier.png)
 
 #### CatBoost CLassifier
+
 ![CatBoost Classifier](confusion_matrix_CatBoost_Classifier.png)
+
+#### Nearest Centroid
+
+![Nearest Centroid](confusion_matrix_Nearest_Centroind.png)
+
+#### Perceptron
+
+![Perceptron](confusion_matrix_Perceptron.png)
+
+#### Perceptron With Manual Weights
+
+![Perceptron With Manual Weights](confusion_matrix_Perceptron_With_Manual_Weights.png)
+
+#### Ridge Classifier
+
+![Ridge Classifier](confusion_matrix_Ridge_Classifier.png)
+
+#### Ridge CLassifier With Manual Weights
+
+![Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.png)
+
 
 ### How to read the confusion matrix values
 

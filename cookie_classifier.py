@@ -14,6 +14,7 @@ from sklearn.naive_bayes import MultinomialNB, ComplementNB, BernoulliNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.decomposition import TruncatedSVD
 
 rows = []
 with open('classified_cookies.csv', 'r', encoding='utf-8', errors='replace') as f:
@@ -338,7 +339,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 
 
 # print("\n" + "="*80)
-# print("TRYING: RandomForest with class_weight='balanced_subsample'")
+# print("TRYING: RandomForest")
 # print("="*80)
 
 # # 92,02%
@@ -354,8 +355,8 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 
 # rf.fit(X_train_encoded, y_train)
 # model_train_preds_rf = rf.predict(X_train_encoded)
-# y_rf_pred = rf.predict(X_test_encoded)
-# evaluate_model("RandomForest Classifier", y_test, y_rf_pred, model_train_preds_rf)
+# model_test_preds_rf = rf.predict(X_test_encoded)
+# evaluate_model("RandomForest Classifier", y_test, model_test_preds_rf, model_train_preds_rf)
 
 # print("\n" + "="*80)
 # print("TRYING: Decision Tree Classifier")
@@ -439,24 +440,24 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # cnb_test_pred = cnb.predict(X_test_small_cnb)
 # evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: Bernoulli Naive Bayes")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Bernoulli Naive Bayes")
+# print("="*80)
 
-# 93,75%
-X_train_bin = (X_train_encoded > 0).astype(np.int8)
-X_test_bin = (X_test_encoded > 0).astype(np.int8)
+# # 93,75%
+# X_train_bin = (X_train_encoded > 0).astype(np.int8)
+# X_test_bin = (X_test_encoded > 0).astype(np.int8)
 
-selector_bnb = SelectKBest(chi2, k=22000) 
-X_train_small_bnb = selector_bnb.fit_transform(X_train_bin, y_train)
-X_test_small_bnb = selector_bnb.transform(X_test_bin)
+# selector_bnb = SelectKBest(chi2, k=22000) 
+# X_train_small_bnb = selector_bnb.fit_transform(X_train_bin, y_train)
+# X_test_small_bnb = selector_bnb.transform(X_test_bin)
 
-bnb = BernoulliNB(alpha=1e-3, binarize=None)  
-bnb.fit(X_train_small_bnb, y_train)
+# bnb = BernoulliNB(alpha=1e-3, binarize=None)  
+# bnb.fit(X_train_small_bnb, y_train)
 
-bnb_train_pred = bnb.predict(X_train_small_bnb)
-bnb_test_pred = bnb.predict(X_test_small_bnb)
-evaluate_model("Bernoulli Naive Bayes", y_test, bnb_test_pred, bnb_train_pred)
+# bnb_train_pred = bnb.predict(X_train_small_bnb)
+# bnb_test_pred = bnb.predict(X_test_small_bnb)
+# evaluate_model("Bernoulli Naive Bayes", y_test, bnb_test_pred, bnb_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: Stacking Classifier")
@@ -673,154 +674,167 @@ evaluate_model("Bernoulli Naive Bayes", y_test, bnb_test_pred, bnb_train_pred)
 # catc_test_pred = catc.predict(X_test_small_cat)
 # evaluate_model("CatBoost Classifier", y_test, catc_test_pred, catc_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: Perceptron")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Perceptron")
+# print("="*80)
 
-perc = Perceptron(
-    penalty=None,
-    alpha=1e-3,
-    l1_ratio=0.15,
-    fit_intercept=True,
-    max_iter=100,
-    shuffle=True,
-    verbose=0,
-    n_jobs=-1,
-    random_state=0,
-    early_stopping=True,
-    validation_fraction=0.1,
-    n_iter_no_change=10,
-    class_weight='balanced'
-)
+# # 96,04%
 
-perc.fit(X_train_encoded, y_train)
-perc_train_pred = perc.predict(X_train_encoded)
-perc_test_pred = perc.predict(X_test_encoded)
-evaluate_model("Perceptron", y_test, perc_test_pred, perc_train_pred)
+# perc = Perceptron(
+#     penalty=None,
+#     alpha=1e-3,
+#     l1_ratio=0.15,
+#     fit_intercept=True,
+#     max_iter=200,
+#     shuffle=True,
+#     verbose=0,
+#     n_jobs=-1,
+#     random_state=0,
+#     early_stopping=True,
+#     validation_fraction=0.1,
+#     n_iter_no_change=20,
+#     class_weight='balanced'
+# )
+
+# perc.fit(X_train_encoded, y_train)
+# perc_train_pred = perc.predict(X_train_encoded)
+# perc_test_pred = perc.predict(X_test_encoded)
+# evaluate_model("Perceptron", y_test, perc_test_pred, perc_train_pred)
+
+# print("\n" + "="*80)
+# print("TRYING: Perceptron With Manual Weights")
+# print("="*80)
+
+# # 96,28%
+
+# class_weight_map = {
+#     'Necessary': 3.0,      
+#     'Preferences': 2.5,
+#     'Statistics': 1.3,
+#     'Marketing': 1.0,    
+# } 
+
+# perc_mw = Perceptron(
+#     penalty=None,
+#     alpha=1e-3,
+#     l1_ratio=0.15,
+#     fit_intercept=True,
+#     max_iter=100,
+#     shuffle=True,
+#     verbose=0,
+#     n_jobs=-1,
+#     random_state=0,
+#     early_stopping=True,
+#     validation_fraction=0.1,
+#     n_iter_no_change=10,
+#     class_weight=class_weight_map
+# )
+
+# perc_mw.fit(X_train_encoded, y_train)
+# perc_mw_train_pred = perc_mw.predict(X_train_encoded)
+# perc_mw_test_pred = perc_mw.predict(X_test_encoded)
+# evaluate_model("Perceptron With Manual Weights", y_test, perc_mw_test_pred, perc_mw_train_pred)
+
+# print("\n" + "="*80)
+# print("TRYING: Nearest Centroid")
+# print("="*80)
+
+# # 78,14%
+
+# selector_bnb = SelectKBest(chi2, k=1500) 
+# X_train_small_nc = selector_bnb.fit_transform(X_train_encoded, y_train)
+# X_test_small_nc = selector_bnb.transform(X_test_encoded)
 
 
-print("\n" + "="*80)
-print("TRYING: Perceptron With Manual Weights")
-print("="*80)
+# nc = NearestCentroid(metric='euclidean', shrink_threshold=0.001, priors='uniform')
 
-class_weight_map = {
-    'Necessary': 5.0,      
-    'Preferences': 2.0,
-    'Statistics': 1.5,
-    'Marketing': 1.0,    
-} 
+# nc.fit(X_train_small_nc, y_train)
+# nc_train_pred = nc.predict(X_train_small_nc)
+# nc_test_pred = nc.predict(X_test_small_nc)
+# evaluate_model("Nearest Centroind", y_test, nc_test_pred, nc_train_pred)
 
-perc_mw = Perceptron(
-    penalty=None,
-    alpha=1e-3,
-    l1_ratio=0.15,
-    fit_intercept=True,
-    max_iter=100,
-    shuffle=True,
-    verbose=0,
-    n_jobs=-1,
-    random_state=0,
-    early_stopping=True,
-    validation_fraction=0.1,
-    n_iter_no_change=10,
-    class_weight=class_weight_map
-)
+# print("\n" + "="*80)
+# print("TRYING: Ridge Classifier")
+# print("="*80)
 
-perc_mw.fit(X_train_encoded, y_train)
-perc_mw_train_pred = perc_mw.predict(X_train_encoded)
-perc_mw_test_pred = perc_mw.predict(X_test_encoded)
-evaluate_model("Perceptron", y_test, perc_mw_test_pred, perc_mw_train_pred)
+# # 95,24%
 
+# rc = RidgeClassifier(
+#     alpha=0.1,
+#     class_weight='balanced',
+#     solver='auto',
+#     random_state=0
+# )
 
-print("\n" + "="*80)
-print("TRYING: Nearest Centroid")
-print("="*80)
+# rc.fit(X_train_encoded, y_train)
+# rc_train_pred = rc.predict(X_train_encoded)
+# rc_test_pred = rc.predict(X_test_encoded)
+# evaluate_model("Ridge CLassifier", y_test, rc_test_pred, rc_train_pred)
 
-nc = NearestCentroid(metric='euclidean', shrink_threshold=None, priors='uniform')
+# print("\n" + "="*80)
+# print("TRYING: Ridge Classifier With Manual Weights")
+# print("="*80)
 
-nc.fit(X_train_encoded, y_train)
-nc_train_pred = nc.predict(X_train_encoded)
-nc_test_pred = nc.predict(X_test_encoded)
-evaluate_model("Nearest Centroind", y_test, nc_test_pred, nc_train_pred)
+# # 96,41% 
 
-print("\n" + "="*80)
-print("TRYING: Ridge Classifier")
-print("="*80)
+# class_weight_map = {
+#     'Necessary': 3.0,      
+#     'Preferences': 1.8,
+#     'Statistics': 1.5,
+#     'Marketing': 1.0,    
+# } 
 
-rc = RidgeClassifier(
-    alpha=1.0,
-    class_weight='balanced',
-    solver='auto',
-    random_state=0
-)
+# rc_mw = RidgeClassifier(
+#     alpha=0.1,
+#     class_weight=class_weight_map,
+#     solver='auto',
+#     random_state=0
+# )
 
-rc.fit(X_train_encoded, y_train)
-rc_train_pred = rc.predict(X_train_encoded)
-rc_test_pred = rc.predict(X_test_encoded)
-evaluate_model("Ridge CLassifier", y_test, rc_test_pred, rc_train_pred)
+# rc_mw.fit(X_train_encoded, y_train)
+# rc_mw_train_pred = rc_mw.predict(X_train_encoded)
+# rc_mw_test_pred = rc_mw.predict(X_test_encoded)
+# evaluate_model("Ridge CLassifier With Manual Weights", y_test, rc_mw_test_pred, rc_mw_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: Ridge Classifier With Manual Weights")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Ridge Classifier CV")
+# print("="*80)
 
-class_weight_map = {
-    'Necessary': 5.0,      
-    'Preferences': 2.0,
-    'Statistics': 1.5,
-    'Marketing': 1.0,    
-} 
+# rccv = RidgeClassifierCV(
+#     alphas=(0.1, 1.0, 10.0),
+#     scoring=None,
+#     cv=None,
+#     class_weight='balanced'
+# )
 
-rc_mw = RidgeClassifier(
-    alpha=1.0,
-    class_weight=class_weight_map,
-    solver='auto',
-    random_state=0
-)
+# rccv.fit(X_train_encoded, y_train)
+# rccv_train_pred = rccv.predict(X_train_encoded)
+# rccv_test_pred = rccv.predict(X_test_encoded)
+# evaluate_model("Ridge Clasifier CV", y_test, rccv_test_pred, rccv_train_pred)
 
-rc_mw.fit(X_train_encoded, y_train)
-rc_mw_train_pred = rc_mw.predict(X_train_encoded)
-rc_mw_test_pred = rc_mw.predict(X_test_encoded)
-evaluate_model("Ridge CLassifier Manual Weights", y_test, rc_mw_test_pred, rc_mw_train_pred)
+# print("\n" + "="*80)
+# print("TRYING: Ridge Classifier CV Manual Weights")
+# print("="*80)
 
-print("\n" + "="*80)
-print("TRYING: Ridge Classifier CV")
-print("="*80)
+# rccv_mw = RidgeClassifierCV(
+#     alphas=(0.1, 1.0, 10.0),
+#     scoring=None,
+#     cv=None,
+#     class_weight='balanced'
+# )
 
-rccv = RidgeClassifierCV(
-    alphas=(0.1, 1.0, 10.0),
-    scoring=None,
-    cv=None,
-    class_weight='balanced'
-)
+# rccv_mw.fit(X_train_encoded, y_train)
+# rccv_mw_train_pred = rccv_mw.predict(X_train_encoded)
+# rccv_mw_test_pred = rccv_mw.predict(X_test_encoded)
+# evaluate_model("Ridge Clasifier CV Manual Weights", y_test, rccv_mw_test_pred, rccv_mw_train_pred)
 
-rccv.fit(X_train_encoded, y_train)
-rccv_train_pred = rccv.predict(X_train_encoded)
-rccv_test_pred = rccv.predict(X_test_encoded)
-evaluate_model("Ridge Clasifier CV", y_test, rccv_test_pred, rccv_train_pred)
+# print("\n" + "="*80)
+# print("TRYING: Calibrated Classifier CV")
+# print("="*80)
 
-print("\n" + "="*80)
-print("TRYING: Ridge Classifier CV Manual Weights")
-print("="*80)
+# cccv = CalibratedClassifierCV(method='sigmoid', cv=None, n_jobs=-1)
 
-rccv_mw = RidgeClassifierCV(
-    alphas=(0.1, 1.0, 10.0),
-    scoring=None,
-    cv=None,
-    class_weight='balanced'
-)
-
-rccv_mw.fit(X_train_encoded, y_train)
-rccv_mw_train_pred = rccv_mw.predict(X_train_encoded)
-rccv_mw_test_pred = rccv_mw.predict(X_test_encoded)
-evaluate_model("Ridge Clasifier CV Manual Weights", y_test, rccv_mw_test_pred, rccv_mw_train_pred)
-
-print("\n" + "="*80)
-print("TRYING: Calibrated Classifier CV")
-print("="*80)
-
-cccv = CalibratedClassifierCV(method='sigmoid', cv=None, n_jobs=-1)
-
-cccv.fit(X_train_encoded, y_train)
-cccv_train_pred = cccv.predict(X_train_encoded)
-cccv_test_pred = cccv.predict(X_test_encoded)
-evaluate_model("Calibrated Classifier CV", y_test, cccv_test_pred, cccv_train_pred)
+# cccv.fit(X_train_encoded, y_train)
+# cccv_train_pred = cccv.predict(X_train_encoded)
+# cccv_test_pred = cccv.predict(X_test_encoded)
+# evaluate_model("Calibrated Classifier CV", y_test, cccv_test_pred, cccv_train_pred)
