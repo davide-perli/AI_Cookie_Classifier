@@ -206,8 +206,11 @@ The project compares multiple linear models:
 - Perceptron with manual class weights
 - Ridge Classifier
 - Ridge CLassifier With Manual Weights
+- Ridge Classifier CV
+- Ridge Classifier CV With Manual Weights
 - Stacking Classifier
 - Voting Classifier
+- Calibrated Classifier CV
 
 Linear models work well for high-dimensional sparse TF-IDF features and scale better than many non-linear models on this dataset size.
 
@@ -258,8 +261,11 @@ You can find the generated confusion matrices here:
 - [Perceptron With Manual Weights](confusion_matrix_Perceptron_With_Manual_Weights.pdf)
 - [Ridge CLassifier](confusion_matrix_Ridge_CLassifier.pdf)
 - [Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.pdf)
+- [Ridge Classifier CV](confusion_matrix_Ridge_Clasifier_CV.pdf)
+- [Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Classifier_CV_With_Manual_Weights.pdf)
 - [Stacking Classifier](confusion_matrix_Stacking_Classifier.pdf)
 - [Voting Classifier](confusion_matrix_Voting_Classifier.pdf)
+- [Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.pdf)
 
 ### Confusion matrices (preview images)
 
@@ -354,6 +360,14 @@ You can find the generated confusion matrices here:
 
 ![Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.png)
 
+#### Ridge Classifier CV
+
+![Ridge Classifier CV](confusion_matrix_Ridge_Clasifier_CV.png)
+
+#### Ridge Classifier CV With Manual Weights
+
+![Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Classifier_CV_With_Manual_Weights.png)
+
 #### Stacking Classifier
 
 ![Stacking Classifier](confusion_matrix_Stacking_Classifier.png)
@@ -361,6 +375,10 @@ You can find the generated confusion matrices here:
 #### Voting Classifier
 
 ![Voting Classifier](confusion_matrix_Voting_Classifier.png)
+
+#### Calibrated Classifier CV
+
+![Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.pdf)
 
 ### How to read the confusion matrix values
 

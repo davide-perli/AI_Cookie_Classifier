@@ -1,5 +1,5 @@
 import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, lightgbm as lgb, xgboost as xgb, catboost
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import LabelEncoder
@@ -459,107 +459,113 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # bnb_test_pred = bnb.predict(X_test_small_bnb)
 # evaluate_model("Bernoulli Naive Bayes", y_test, bnb_test_pred, bnb_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: Stacking Classifier")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Stacking Classifier")
+# print("="*80)
 
-base_estimators = [
-    ("lr", LogisticRegression(
-        max_iter=3000,
-        solver="saga",
-        class_weight="balanced",
-        random_state=0
-    )),
-    ("sgd", SGDClassifier(
-        loss="log_loss",
-        alpha=1e-5,
-        class_weight="balanced",
-        max_iter=2000,
-        tol=1e-3,
-        n_jobs=-1,
-        random_state=0
-    )),
-    ("cnb", ComplementNB(alpha=0.1))
-]
+# # 95,76
 
-meta_model = LogisticRegression(
-    max_iter=2000,
-    solver="lbfgs",
-    class_weight="balanced",
-    random_state=0
-)
+# base_estimators = [
+#     ("lr", LogisticRegression(
+#         max_iter=3000,
+#         solver="saga",
+#         class_weight="balanced",
+#         random_state=0
+#     )),
+#     ("sgd", SGDClassifier(
+#         loss="log_loss",
+#         alpha=1e-5,
+#         class_weight="balanced",
+#         max_iter=2000,
+#         tol=1e-3,
+#         n_jobs=-1,
+#         random_state=0
+#     )),
+#     ("cnb", ComplementNB(alpha=0.1))
+# ]
 
-stack_clf = StackingClassifier(
-    estimators=base_estimators,
-    final_estimator=meta_model,
-    cv=3,
-    n_jobs=-1,
-    passthrough=False
-)
+# meta_model = LogisticRegression(
+#     max_iter=2000,
+#     solver="lbfgs",
+#     class_weight="balanced",
+#     random_state=0
+# )
 
-stack_clf.fit(X_train_encoded, y_train)
-stack_train_pred = stack_clf.predict(X_train_encoded)
-stack_test_pred = stack_clf.predict(X_test_encoded)
-evaluate_model("Stacking Classifier", y_test, stack_test_pred, stack_train_pred)
+# stack_clf = StackingClassifier(
+#     estimators=base_estimators,
+#     final_estimator=meta_model,
+#     cv=3,
+#     n_jobs=-1,
+#     passthrough=False
+# )
 
-print("\n" + "="*80)
-print("TRYING: Voting Classifier")
-print("="*80)
+# stack_clf.fit(X_train_encoded, y_train)
+# stack_train_pred = stack_clf.predict(X_train_encoded)
+# stack_test_pred = stack_clf.predict(X_test_encoded)
+# evaluate_model("Stacking Classifier", y_test, stack_test_pred, stack_train_pred)
 
-voting_clf = VotingClassifier(
-    estimators=[
-        ("lr", LogisticRegression(
-            max_iter=3000,
-            solver="saga",
-            class_weight="balanced",
-            random_state=0
-        )),
-        ("sgd", SGDClassifier(
-            loss="log_loss",
-            alpha=1e-5,
-            class_weight="balanced",
-            max_iter=2000,
-            tol=1e-3,
-            random_state=0
-        )),
-        ("cnb", ComplementNB(alpha=0.1))
-    ],
-    voting="hard",   
-    n_jobs=-1
-)
+# print("\n" + "="*80)
+# print("TRYING: Voting Classifier")
+# print("="*80)
 
-voting_clf.fit(X_train_encoded, y_train)
-voting_train_pred = voting_clf.predict(X_train_encoded)
-voting_test_pred = voting_clf.predict(X_test_encoded)
-evaluate_model("Voting Classifier", y_test, voting_test_pred, voting_train_pred)
+# # 96,40%
 
-print("\n" + "="*80)
-print("TRYING: MLP Classifier")
-print("="*80)
+# voting_clf = VotingClassifier(
+#     estimators=[
+#         ("lr", LogisticRegression(
+#             max_iter=3000,
+#             solver="saga",
+#             class_weight="balanced",
+#             random_state=0
+#         )),
+#         ("sgd", SGDClassifier(
+#             loss="log_loss",
+#             alpha=1e-5,
+#             class_weight="balanced",
+#             max_iter=2000,
+#             tol=1e-3,
+#             random_state=0
+#         )),
+#         ("cnb", ComplementNB(alpha=0.1))
+#     ],
+#     voting="hard",   
+#     n_jobs=-1
+# )
 
-mlpc = MLPClassifier(
-    hidden_layer_sizes=(200,),   
-    activation='relu',
-    solver='adam',              
-    alpha=1e-5,                 
-    batch_size=512,              
-    learning_rate_init=0.001,
-    max_iter=200,
-    early_stopping=True,
-    validation_fraction=0.1,
-    n_iter_no_change=5,
-    random_state=42
-)
+# voting_clf.fit(X_train_encoded, y_train)
+# voting_train_pred = voting_clf.predict(X_train_encoded)
+# voting_test_pred = voting_clf.predict(X_test_encoded)
+# evaluate_model("Voting Classifier", y_test, voting_test_pred, voting_train_pred)
 
-mlp_label_encoder = LabelEncoder()
-y_train_mlp = mlp_label_encoder.fit_transform(y_train)
+# print("\n" + "="*80)
+# print("TRYING: MLP Classifier")
+# print("="*80)
 
-mlpc.fit(X_train_encoded, y_train_mlp)
-mlpc_train_pred_int = mlpc.predict(X_train_encoded)
-mlpc_test_pred_int = mlpc.predict(X_test_encoded)
-mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
-mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
-evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
+# # 98,70%
+
+# mlpc = MLPClassifier(
+#     hidden_layer_sizes=(200,),   
+#     activation='relu',
+#     solver='adam',              
+#     alpha=1e-5,                 
+#     batch_size=512,              
+#     learning_rate_init=0.001,
+#     max_iter=200,
+#     early_stopping=True,
+#     validation_fraction=0.1,
+#     n_iter_no_change=5,
+#     random_state=42
+# )
+
+# mlp_label_encoder = LabelEncoder()
+# y_train_mlp = mlp_label_encoder.fit_transform(y_train)
+
+# mlpc.fit(X_train_encoded, y_train_mlp)
+# mlpc_train_pred_int = mlpc.predict(X_train_encoded)
+# mlpc_test_pred_int = mlpc.predict(X_test_encoded)
+# mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
+# mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
+# evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: LightGBM Classifier")
@@ -800,39 +806,66 @@ evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
 # print("TRYING: Ridge Classifier CV")
 # print("="*80)
 
+# # 95,00%
+
+# selector_rccv = SelectKBest(chi2, k=20000) 
+# X_train_small_rccv = selector_rccv.fit_transform(X_train_encoded, y_train)
+# X_test_small_rccv = selector_rccv.transform(X_test_encoded)
+
+# cv_splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
 # rccv = RidgeClassifierCV(
 #     alphas=(0.1, 1.0, 10.0),
-#     scoring=None,
-#     cv=None,
+#     scoring='top_k_accuracy', # None, top_k_accuracy, average_precision, accuracy
+#     cv=cv_splitter,
 #     class_weight='balanced'
 # )
 
-# rccv.fit(X_train_encoded, y_train)
-# rccv_train_pred = rccv.predict(X_train_encoded)
-# rccv_test_pred = rccv.predict(X_test_encoded)
+# rccv.fit(X_train_small_rccv, y_train)
+# rccv_train_pred = rccv.predict(X_train_small_rccv)
+# rccv_test_pred = rccv.predict(X_test_small_rccv)
 # evaluate_model("Ridge Clasifier CV", y_test, rccv_test_pred, rccv_train_pred)
 
 # print("\n" + "="*80)
-# print("TRYING: Ridge Classifier CV Manual Weights")
+# print("TRYING: Ridge Classifier CV With Manual Weights")
 # print("="*80)
+
+# # 96,26%
+
+# class_weight_map = {
+#     'Necessary': 3.0,      
+#     'Preferences': 1.5,
+#     'Statistics': 1.3,
+#     'Marketing': 1.0,    
+# } 
+
+# selector_rccv_mw = SelectKBest(chi2, k=15000) 
+# X_train_small_rccv_mw = selector_rccv_mw.fit_transform(X_train_encoded, y_train)
+# X_test_small_rccv_mw = selector_rccv_mw.transform(X_test_encoded)
+
+# cv_splitter = StratifiedKFold(n_splits=7, shuffle=True, random_state=42)
 
 # rccv_mw = RidgeClassifierCV(
 #     alphas=(0.1, 1.0, 10.0),
-#     scoring=None,
-#     cv=None,
-#     class_weight='balanced'
+#     scoring='top_k_accuracy',
+#     cv=cv_splitter,
+#     class_weight=class_weight_map
 # )
 
-# rccv_mw.fit(X_train_encoded, y_train)
-# rccv_mw_train_pred = rccv_mw.predict(X_train_encoded)
-# rccv_mw_test_pred = rccv_mw.predict(X_test_encoded)
-# evaluate_model("Ridge Clasifier CV Manual Weights", y_test, rccv_mw_test_pred, rccv_mw_train_pred)
+# rccv_mw.fit(X_train_small_rccv_mw, y_train)
+# rccv_mw_train_pred = rccv_mw.predict(X_train_small_rccv_mw)
+# rccv_mw_test_pred = rccv_mw.predict(X_test_small_rccv_mw)
+# evaluate_model("Ridge Clasifier CV With Manual Weights", y_test, rccv_mw_test_pred, rccv_mw_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: Calibrated Classifier CV")
 # print("="*80)
 
-# cccv = CalibratedClassifierCV(method='sigmoid', cv=None, n_jobs=-1)
+# # 97,26%
+
+# cv_splitter = StratifiedKFold(n_splits=7, shuffle=True, random_state=42)
+
+# cccv = CalibratedClassifierCV(method='isotonic', cv=cv_splitter, n_jobs=-1)
 
 # cccv.fit(X_train_encoded, y_train)
 # cccv_train_pred = cccv.predict(X_train_encoded)
