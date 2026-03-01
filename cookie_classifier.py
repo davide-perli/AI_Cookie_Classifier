@@ -537,35 +537,45 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # voting_test_pred = voting_clf.predict(X_test_encoded)
 # evaluate_model("Voting Classifier", y_test, voting_test_pred, voting_train_pred)
 
-# print("\n" + "="*80)
-# print("TRYING: MLP Classifier")
-# print("="*80)
+print("\n" + "="*80)
+print("TRYING: MLP Classifier")
+print("="*80)
 
-# # 98,70%
+# 98,76%
 
-# mlpc = MLPClassifier(
-#     hidden_layer_sizes=(200,),   
-#     activation='relu',
-#     solver='adam',              
-#     alpha=1e-5,                 
-#     batch_size=512,              
-#     learning_rate_init=0.001,
-#     max_iter=200,
-#     early_stopping=True,
-#     validation_fraction=0.1,
-#     n_iter_no_change=5,
-#     random_state=42
-# )
+mlpc = MLPClassifier(
+    hidden_layer_sizes=(200,),   
+    activation='relu', # tanh has 98,70%
+    solver='adam',              
+    alpha=1e-3,                 
+    batch_size=8192,
+    learning_rate_init=0.01,
+    max_iter=200,
+    verbose=10,
+    early_stopping=True,
+    validation_fraction=0.1,
+    beta_1=0.9,
+    epsilon=1e-8,    
+    n_iter_no_change=10,
+    random_state=42,
+)
 
-# mlp_label_encoder = LabelEncoder()
-# y_train_mlp = mlp_label_encoder.fit_transform(y_train)
+mlp_label_encoder = LabelEncoder()
+y_train_mlp = mlp_label_encoder.fit_transform(y_train)
 
-# mlpc.fit(X_train_encoded, y_train_mlp)
-# mlpc_train_pred_int = mlpc.predict(X_train_encoded)
-# mlpc_test_pred_int = mlpc.predict(X_test_encoded)
-# mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
-# mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
-# evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
+X_train_encoded_32 = X_train_encoded.astype("float32")
+X_test_encoded_32 = X_test_encoded.astype("float32")
+
+# selector_mlp = SelectKBest(chi2, k=8000)
+# X_train_small_mlp = selector_mlp.fit_transform(X_train_encoded, y_train)
+# X_test_small_mlp = selector_mlp.transform(X_test_encoded)
+
+mlpc.fit(X_train_encoded_32, y_train_mlp)
+mlpc_train_pred_int = mlpc.predict(X_train_encoded_32)
+mlpc_test_pred_int = mlpc.predict(X_test_encoded_32)
+mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
+mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
+evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: LightGBM Classifier")
