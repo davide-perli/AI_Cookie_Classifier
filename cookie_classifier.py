@@ -563,7 +563,9 @@ mlpc = MLPClassifier(
 mlp_label_encoder = LabelEncoder()
 y_train_mlp = mlp_label_encoder.fit_transform(y_train)
 
+print(X_train_encoded.dtype)
 X_train_encoded_32 = X_train_encoded.astype("float32")
+print(X_train_encoded_32.dtype)
 X_test_encoded_32 = X_test_encoded.astype("float32")
 
 # selector_mlp = SelectKBest(chi2, k=8000)
