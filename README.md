@@ -241,7 +241,7 @@ You can find the generated confusion matrices here:
 - [KNN](confusion_matrix_KNN.pdf)
 - [KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.pdf)
 - [Logistic Regression](confusion_matrix_Logistic_Regression_Balanced.pdf)
-- [Logistic Regression With Manual Weights)](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
+- [Logistic Regression With Manual Weights](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
 - [SGD Classifier](confusion_matrix_SGD_Classifier.pdf)
 - [Passive Aggressive Classifier](confusion_matrix_Passive_Aggressive_Classifier.pdf)
 - [LinearSVC](confusion_matrix_LinearSVC.pdf)
@@ -262,7 +262,7 @@ You can find the generated confusion matrices here:
 - [Ridge CLassifier](confusion_matrix_Ridge_CLassifier.pdf)
 - [Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.pdf)
 - [Ridge Classifier CV](confusion_matrix_Ridge_Clasifier_CV.pdf)
-- [Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Classifier_CV_With_Manual_Weights.pdf)
+- [Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Clasifier_CV_With_Manual_Weights.pdf)
 - [Stacking Classifier](confusion_matrix_Stacking_Classifier.pdf)
 - [Voting Classifier](confusion_matrix_Voting_Classifier.pdf)
 - [Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.pdf)
@@ -277,13 +277,13 @@ You can find the generated confusion matrices here:
 
 ![KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.png)
 
+#### Logistic Regression
+
+![Logistic Regression](confusion_matrix_Logistic_Regression_Balanced.png)
+
 #### Logistic Regression (Manual Weights)
 
 ![Logistic Regression (Manual Weights)](confusion_matrix_Logistic_Regression_Manual_Weights.png)
-
-#### Logistic Regression (Balanced)
-
-![Logistic Regression (Balanced)](confusion_matrix_Logistic_Regression_Balanced.png)
 
 #### SGD Classifier
 
@@ -366,7 +366,7 @@ You can find the generated confusion matrices here:
 
 #### Ridge Classifier CV With Manual Weights
 
-![Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Classifier_CV_With_Manual_Weights.png)
+![Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Clasifier_CV_With_Manual_Weights.png)
 
 #### Stacking Classifier
 
@@ -378,7 +378,8 @@ You can find the generated confusion matrices here:
 
 #### Calibrated Classifier CV
 
-![Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.pdf)
+![Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.png)
+
 
 ### How to read the confusion matrix values
 

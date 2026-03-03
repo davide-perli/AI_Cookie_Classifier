@@ -15,6 +15,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.decomposition import TruncatedSVD
+from scipy.sparse import hstack
+
 
 rows = []
 with open('classified_cookies.csv', 'r', encoding='utf-8', errors='replace') as f:
@@ -92,7 +94,10 @@ X_test_encoded = tfidf.transform(X_test_text)
 
 print("TF-IDF shape:", X_train_encoded.shape)
 
-
+print(X_train_encoded.dtype)
+X_train_encoded_32 = X_train_encoded.astype("float32")
+print(X_train_encoded_32.dtype)
+X_test_encoded_32 = X_test_encoded.astype("float32")
 
 def evaluate_model(model_name, y_true, y_pred, train_pred):
     train_acc = accuracy_score(y_train, train_pred)
@@ -409,25 +414,44 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # abc_test_pred = abc.predict(X_test_encoded)
 # evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
 
-# print("\n" + "="*80)
-# print("TRYING: Multinomial Naive Bayes")
-# print("="*80)
+print("\n" + "="*80)
+print("TRYING: Multinomial Naive Bayes")
+print("="*80)
 
-# # 93,98%
+# # 94.14%
 
-# selector_mnb = SelectKBest(chi2, k=18500)
-# X_train_small_mnb = selector_mnb.fit_transform(X_train_encoded, y_train)
-# X_test_small_mnb = selector_mnb.transform(X_test_encoded)
+word_vec = TfidfVectorizer(ngram_range=(1,2), min_df=3, sublinear_tf=True)
+char_vec = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=10, sublinear_tf=True)
 
-# mnb = MultinomialNB(alpha=1e-9)
-# mnb.fit(X_train_small_mnb, y_train)
-# mnb_train_pred = mnb.predict(X_train_small_mnb)
-# mnb_test_pred = mnb.predict(X_test_small_mnb)
-# evaluate_model("Multinomial Naive Bayes", y_test, mnb_test_pred, mnb_train_pred)
+Xtr_w = word_vec.fit_transform(X_train_text)
+Xte_w = word_vec.transform(X_test_text)
+
+Xtr_c = char_vec.fit_transform(X_train_text)
+Xte_c = char_vec.transform(X_test_text)
+
+k_word = 18500         
+k_char = 8000         
+
+sel_w = SelectKBest(chi2, k=k_word)
+sel_c = SelectKBest(chi2, k=k_char)
+
+Xtr_ws = sel_w.fit_transform(Xtr_w, y_train)
+Xte_ws = sel_w.transform(Xte_w)
+
+Xtr_cs = sel_c.fit_transform(Xtr_c, y_train)
+Xte_cs = sel_c.transform(Xte_c)
+
+Xtr = hstack([Xtr_ws, Xtr_cs])
+Xte = hstack([Xte_ws, Xte_cs])
+
+clf = MultinomialNB(alpha=1e-9)
+clf.fit(Xtr, y_train)
+evaluate_model(f"Multinomial Naive Bayes", y_test, clf.predict(Xte), clf.predict(Xtr))
 
 # print("\n" + "="*80)
 # print("TRYING: Complement Naive Bayes")
 # print("="*80)
+
 # # 93,93 %%
 
 # selector_cnb = SelectKBest(chi2, k=17000)
@@ -513,71 +537,73 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # voting_clf = VotingClassifier(
 #     estimators=[
 #         ("lr", LogisticRegression(
-#             max_iter=3000,
+#             max_iter=5000,
 #             solver="saga",
 #             class_weight="balanced",
 #             random_state=0
 #         )),
 #         ("sgd", SGDClassifier(
 #             loss="log_loss",
-#             alpha=1e-5,
-#             class_weight="balanced",
-#             max_iter=2000,
-#             tol=1e-3,
+#             alpha=1e-7,
+#             max_iter=100,
+#             early_stopping=True,
+#             validation_fraction=0.1,
+#             n_iter_no_change=5,    
+#             class_weight={0: 3.0, 1: 2.5, 2: 1.0, 3: 1.0},
 #             random_state=0
 #         )),
-#         ("cnb", ComplementNB(alpha=0.1))
+#         ("cnb", ComplementNB(alpha=1e-8))
 #     ],
 #     voting="hard",   
-#     n_jobs=-1
+#     n_jobs=-1,
+#     verbose=10
 # )
 
-# voting_clf.fit(X_train_encoded, y_train)
-# voting_train_pred = voting_clf.predict(X_train_encoded)
-# voting_test_pred = voting_clf.predict(X_test_encoded)
+# selector_voting_clf = SelectKBest(chi2, k=10000)
+# X_train_small_voting_clf = selector_voting_clf.fit_transform(X_train_encoded_32, y_train)
+# X_test_small_voting_clf = selector_voting_clf.transform(X_test_encoded_32)
+
+# voting_clf.fit(X_train_small_voting_clf, y_train)
+# voting_train_pred = voting_clf.predict(X_train_small_voting_clf)
+# voting_test_pred = voting_clf.predict(X_test_small_voting_clf)
 # evaluate_model("Voting Classifier", y_test, voting_test_pred, voting_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: MLP Classifier")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: MLP Classifier")
+# print("="*80)
 
-# 98,76%
+# # 98,76%
 
-mlpc = MLPClassifier(
-    hidden_layer_sizes=(200,),   
-    activation='relu', # tanh has 98,70%
-    solver='adam',              
-    alpha=1e-3,                 
-    batch_size=8192,
-    learning_rate_init=0.01,
-    max_iter=200,
-    verbose=10,
-    early_stopping=True,
-    validation_fraction=0.1,
-    beta_1=0.9,
-    epsilon=1e-8,    
-    n_iter_no_change=10,
-    random_state=42,
-)
+# mlpc = MLPClassifier(
+#     hidden_layer_sizes=(200,),   
+#     activation='relu', # tanh has 98,70%
+#     solver='adam',              
+#     alpha=1e-3,                 
+#     batch_size=8192,
+#     learning_rate_init=0.01,
+#     max_iter=200,
+#     verbose=10,
+#     early_stopping=True,
+#     validation_fraction=0.1,
+#     beta_1=0.9,
+#     epsilon=1e-8,    
+#     n_iter_no_change=10,
+#     random_state=42,
+# )
 
-mlp_label_encoder = LabelEncoder()
-y_train_mlp = mlp_label_encoder.fit_transform(y_train)
+# mlp_label_encoder = LabelEncoder()
+# y_train_mlp = mlp_label_encoder.fit_transform(y_train)
 
-print(X_train_encoded.dtype)
-X_train_encoded_32 = X_train_encoded.astype("float32")
-print(X_train_encoded_32.dtype)
-X_test_encoded_32 = X_test_encoded.astype("float32")
+# # selector_mlp = SelectKBest(chi2, k=8000)
+# # X_train_small_mlp = selector_mlp.fit_transform(X_train_encoded, y_train)
+# # X_test_small_mlp = selector_mlp.transform(X_test_encoded)
 
-# selector_mlp = SelectKBest(chi2, k=8000)
-# X_train_small_mlp = selector_mlp.fit_transform(X_train_encoded, y_train)
-# X_test_small_mlp = selector_mlp.transform(X_test_encoded)
-
-mlpc.fit(X_train_encoded_32, y_train_mlp)
-mlpc_train_pred_int = mlpc.predict(X_train_encoded_32)
-mlpc_test_pred_int = mlpc.predict(X_test_encoded_32)
-mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
-mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
-evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
+# mlpc.fit(X_train_encoded_32, y_train_mlp)
+# mlpc_train_pred_int = mlpc.predict(X_train_encoded_32)
+# mlpc_test_pred_int = mlpc.predict(X_test_encoded_32)
+# mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
+# mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
+# evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: LightGBM Classifier")
