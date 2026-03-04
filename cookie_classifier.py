@@ -15,6 +15,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import Normalizer
 from scipy.sparse import hstack
 
 
@@ -82,10 +83,11 @@ X_test_text = combine_features(X_test)
 # print(X_test_text.iloc[0])
 
 tfidf = TfidfVectorizer(
-    max_features=80000,   # Limit memory
+    max_features=80000,   
     ngram_range=(1,2),     # Words + word pairs
-    min_df=10,              # Ignore rare junk
-    sublinear_tf=True
+    min_df=10,             
+    sublinear_tf=True,
+    dtype=np.float32
 )
 
 X_train_encoded = tfidf.fit_transform(X_train_text)
@@ -95,9 +97,6 @@ X_test_encoded = tfidf.transform(X_test_text)
 print("TF-IDF shape:", X_train_encoded.shape)
 
 print(X_train_encoded.dtype)
-X_train_encoded_32 = X_train_encoded.astype("float32")
-print(X_train_encoded_32.dtype)
-X_test_encoded_32 = X_test_encoded.astype("float32")
 
 def evaluate_model(model_name, y_true, y_pred, train_pred):
     train_acc = accuracy_score(y_train, train_pred)
@@ -144,62 +143,94 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # print("\n" + "="*80)
 # print("KNN")
 # print("="*80)
-# # 62,94%
-# knn = KNeighborsClassifier(n_neighbors=4, metric='cosine', weights='distance', algorithm='brute')
-# knn.fit(X_train_encoded, y_train)
-# model_train_knn_preds = knn.predict(X_train_encoded)
-# test_knn_preds = knn.predict(X_test_encoded)
+
+# # 93.30%
+
+# svd = TruncatedSVD(n_components=16, random_state=42)
+# X_train_reduced = svd.fit_transform(X_train_encoded)
+# X_test_reduced = svd.transform(X_test_encoded)
+
+# # Normalize so cosine = dot product
+
+# normalizer = Normalizer(copy=False)
+# X_train_reduced = normalizer.fit_transform(X_train_reduced)
+# X_test_reduced = normalizer.transform(X_test_reduced)
+
+# knn = KNeighborsClassifier(
+#     n_neighbors=7,            
+#     weights='distance',
+#     metric='euclidean',       # after normalization == cosine
+#     algorithm='auto',
+#     n_jobs=-1
+# )
+
+# knn.fit(X_train_reduced, y_train)
+
+# model_train_knn_preds = knn.predict(X_train_reduced)
+# test_knn_preds = knn.predict(X_test_reduced)
+
 # evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
+
 
 # print("\n" + "="*80)
 # print("KNN WITH INVERSE CLASS WEIGHTING")
 # print("="*80)
 
-# # 60,02%
+# # 93.14%
 
-# knn = KNeighborsClassifier(n_neighbors=4, metric='cosine', weights='distance', algorithm='brute')
-# knn.fit(X_train_encoded, y_train)
+# knn = KNeighborsClassifier(
+#     n_neighbors=7,
+#     weights='distance',
+#     metric='euclidean',
+#     algorithm='auto',
+#     n_jobs=-1
+# )
 
-# # Compute inverse class weights for neighbors
-# class_weights_inv = compute_sample_weight('balanced', y_train)
-# y_train_with_weights = y_train.copy()
+# knn.fit(X_train_reduced, y_train)
 
-# # Create weighted KNN-like predictions where nearby samples are weighted by inverse class frequency
-# distances, indices = knn.kneighbors(X_test_encoded)
+# # Get neighbors
+# distances, indices = knn.kneighbors(X_test_reduced)
 
-# # Inverse of class frequencies as weights
-# y_unique = y_train.unique()
+# # Better class weights
 # class_freq = y_train.value_counts()
-# class_weight_dict = {}
-# for cls in y_unique:
-#     class_weight_dict[cls] = 1.0 / (class_freq[cls] / len(y_train))
+# class_weight_dict = {
+#     cls: np.sqrt(len(y_train) / freq) ** 0.3
+#     for cls, freq in class_freq.items()
+# }
 
-# weighted_knnww_preds = []
-# for i in range(X_test_encoded.shape[0]):
+# y_unique = list(class_weight_dict.keys())
+
+# weighted_knn_preds = []
+
+# for i in range(len(indices)):
 #     neighbor_indices = indices[i]
 #     neighbor_distances = distances[i]
 #     neighbor_labels = y_train.iloc[neighbor_indices].values
-#     neighbor_weights = np.array([class_weight_dict[label] for label in neighbor_labels])
-    
-#     # Weight by both distance (closer = more important) and inverse class frequency
+
+#     # Distance weights
 #     distance_weights = 1.0 / (neighbor_distances + 1e-8)
-#     combined_weights = distance_weights * neighbor_weights
-    
-#     # Normalize weights
-#     combined_weights = combined_weights / combined_weights.sum()
-    
-#     # Score each class
+
+#     # Class weights
+#     class_weights = np.array([
+#         class_weight_dict[label]
+#         for label in neighbor_labels
+#     ])
+
+#     combined_weights = distance_weights * class_weights
+
 #     class_scores = {}
 #     for cls in y_unique:
-#         class_scores[cls] = combined_weights[neighbor_labels == cls].sum()
-    
-#     # Predict the class with highest score
-#     pred = max(class_scores, key=class_scores.get)
-#     weighted_knnww_preds.append(pred)
+#         mask = neighbor_labels == cls
+#         class_scores[cls] = combined_weights[mask].sum()
 
-# weighted_knnww_preds = np.array(weighted_knnww_preds)
-# train_preds_knnww_weighted = knn.predict(X_train_encoded)
-# evaluate_model("KNN WITH INVERSE CLASS WEIGHTING", y_test, weighted_knnww_preds, train_preds_knnww_weighted)
+#     pred = max(class_scores, key=class_scores.get)
+#     weighted_knn_preds.append(pred)
+
+# weighted_knn_preds = np.array(weighted_knn_preds)
+
+# train_preds_knnww_weighted = knn.predict(X_train_reduced)
+
+# evaluate_model("KNN WITH INVERSE CLASS WEIGHTING", y_test, weighted_knn_preds, train_preds_knnww_weighted)
 
 # print("\n" + "="*80)
 # print("TRYING: Logistic Regression with manual weights")
@@ -382,37 +413,35 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # dtc_test_pred = dtc.predict(X_test_encoded)
 # evaluate_model("Decision Tree Classifier", y_test, dtc_test_pred, dtc_train_pred)
 
-# # NEED FURTHER TUNING (current 21,65%)
-# print("\n" + "="*80)
-# print("TRYING: Ada Boost Classifier")
-# print("="*80)
+# # NEED FURTHER TUNING (current 63.75%)
+print("\n" + "="*80)
+print("TRYING: Ada Boost Classifier")
+print("="*80)
 
-# ada_class_weight_map = {
-#     'Necessary': 1.6,
-#     'Preferences': 1.4,
-#     'Statistics': 1.1,
-#     'Marketing': 1.0,
-# }
-# ada_sample_weight = y_train.map(ada_class_weight_map).fillna(1.0)
+svd_ada = TruncatedSVD(n_components=6, random_state=42)
+X_train_ada = svd_ada.fit_transform(X_train_encoded)
+X_test_ada = svd_ada.transform(X_test_encoded)
 
-# ada_base_tree = DecisionTreeClassifier(
-#     max_depth=6,
-#     min_samples_leaf=5,
-#     class_weight='balanced',
-#     random_state=0
-# )
+ada_base_tree = DecisionTreeClassifier(
+    max_depth=2,
+    min_samples_leaf=10,
+    # class_weight='balanced',
+    random_state=0
+)
 
-# abc = AdaBoostClassifier(
-#     estimator=ada_base_tree,
-#     n_estimators=400,
-#     learning_rate=0.5,
-#     random_state=0
-# )
+abc = AdaBoostClassifier(
+    estimator=ada_base_tree,
+    n_estimators=100,
+    learning_rate=0.8,
+    random_state=0
+)
 
-# abc.fit(X_train_encoded, y_train, sample_weight=ada_sample_weight)
-# abc_train_pred = abc.predict(X_train_encoded)
-# abc_test_pred = abc.predict(X_test_encoded)
-# evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
+abc.fit(X_train_ada, y_train)
+
+abc_train_pred = abc.predict(X_train_ada)
+abc_test_pred = abc.predict(X_test_ada)
+
+evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: Multinomial Naive Bayes")
@@ -584,8 +613,8 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # )
 
 # selector_voting_clf = SelectKBest(chi2, k=10000)
-# X_train_small_voting_clf = selector_voting_clf.fit_transform(X_train_encoded_32, y_train)
-# X_test_small_voting_clf = selector_voting_clf.transform(X_test_encoded_32)
+# X_train_small_voting_clf = selector_voting_clf.fit_transform(X_train_encoded, y_train)
+# X_test_small_voting_clf = selector_voting_clf.transform(X_test_encoded)
 
 # voting_clf.fit(X_train_small_voting_clf, y_train)
 # voting_train_pred = voting_clf.predict(X_train_small_voting_clf)
@@ -622,9 +651,9 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # # X_train_small_mlp = selector_mlp.fit_transform(X_train_encoded, y_train)
 # # X_test_small_mlp = selector_mlp.transform(X_test_encoded)
 
-# mlpc.fit(X_train_encoded_32, y_train_mlp)
-# mlpc_train_pred_int = mlpc.predict(X_train_encoded_32)
-# mlpc_test_pred_int = mlpc.predict(X_test_encoded_32)
+# mlpc.fit(X_train_encoded, y_train_mlp)
+# mlpc_train_pred_int = mlpc.predict(X_train_encoded)
+# mlpc_test_pred_int = mlpc.predict(X_test_encoded)
 # mlpc_train_pred = mlp_label_encoder.inverse_transform(mlpc_train_pred_int)
 # mlpc_test_pred = mlp_label_encoder.inverse_transform(mlpc_test_pred_int)
 # evaluate_model("MLP Classifier", y_test, mlpc_test_pred, mlpc_train_pred)
