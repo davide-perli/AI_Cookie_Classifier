@@ -13,7 +13,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import MultinomialNB, ComplementNB, BernoulliNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
 from scipy.sparse import hstack
 
@@ -414,54 +414,78 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
 # abc_test_pred = abc.predict(X_test_encoded)
 # evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
 
-print("\n" + "="*80)
-print("TRYING: Multinomial Naive Bayes")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Multinomial Naive Bayes")
+# print("="*80)
 
-# # 94.14%
+# # # 94.27%
 
-word_vec = TfidfVectorizer(ngram_range=(1,2), min_df=3, sublinear_tf=True)
-char_vec = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=10, sublinear_tf=True)
+# word_vec_mnb = TfidfVectorizer(ngram_range=(1,2), min_df=4, sublinear_tf=True)
+# char_vec_mnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
 
-Xtr_w = word_vec.fit_transform(X_train_text)
-Xte_w = word_vec.transform(X_test_text)
+# Xtr_w_mnb = (word_vec_mnb.fit_transform(X_train_text)).astype("float32")
+# Xte_w_mnb = (word_vec_mnb.transform(X_test_text)).astype("float32")
 
-Xtr_c = char_vec.fit_transform(X_train_text)
-Xte_c = char_vec.transform(X_test_text)
+# Xtr_c_mnb = (char_vec_mnb.fit_transform(X_train_text)).astype("float32")
+# Xte_c_mnb = (char_vec_mnb.transform(X_test_text)).astype("float32")
 
-k_word = 18500         
-k_char = 8000         
+# k_word = 18500         
+# k_char = 8000         
 
-sel_w = SelectKBest(chi2, k=k_word)
-sel_c = SelectKBest(chi2, k=k_char)
+# sel_w_mnb = SelectKBest(chi2, k=k_word)
+# sel_c_mnb = SelectKBest(chi2, k=k_char)
 
-Xtr_ws = sel_w.fit_transform(Xtr_w, y_train)
-Xte_ws = sel_w.transform(Xte_w)
+# Xtr_ws_mnb = sel_w_mnb.fit_transform(Xtr_w_mnb, y_train)
+# Xte_ws_mnb = sel_w_mnb.transform(Xte_w_mnb)
 
-Xtr_cs = sel_c.fit_transform(Xtr_c, y_train)
-Xte_cs = sel_c.transform(Xte_c)
+# Xtr_cs_mnb = sel_c_mnb.fit_transform(Xtr_c_mnb, y_train)
+# Xte_cs_mnb = sel_c_mnb.transform(Xte_c_mnb)
 
-Xtr = hstack([Xtr_ws, Xtr_cs])
-Xte = hstack([Xte_ws, Xte_cs])
+# Xtr_mnb = hstack([Xtr_ws_mnb, Xtr_cs_mnb])
+# Xte_mnb = hstack([Xte_ws_mnb, Xte_cs_mnb])
 
-clf = MultinomialNB(alpha=1e-9)
-clf.fit(Xtr, y_train)
-evaluate_model(f"Multinomial Naive Bayes", y_test, clf.predict(Xte), clf.predict(Xtr))
+# mnb = MultinomialNB(alpha=1e-9)
+# sw = compute_sample_weight(class_weight={"Necessary": 1.4, "Preferences": 1.3, "Statistics": 1.3, "Marketing": 1.1}, y=y_train)
+# mnb.fit(Xtr_mnb, y_train, sample_weight=sw)
+# mnb_train_predict_label = mnb.predict(Xtr_mnb)
+# mnb_test_predict_label = mnb.predict(Xte_mnb)
+# evaluate_model("Multinomial Naive Bayes", y_test, mnb_test_predict_label, mnb_train_predict_label)
 
 # print("\n" + "="*80)
 # print("TRYING: Complement Naive Bayes")
 # print("="*80)
 
-# # 93,93 %%
+# # # 94.87 %%
 
-# selector_cnb = SelectKBest(chi2, k=17000)
-# X_train_small_cnb = selector_cnb.fit_transform(X_train_encoded, y_train)
-# X_test_small_cnb = selector_cnb.transform(X_test_encoded)
+# word_vec_cnb = TfidfVectorizer(ngram_range=(1,2), min_df=5, sublinear_tf=True)
+# char_vec_cnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
+
+# Xtr_w_cnb = (word_vec_cnb.fit_transform(X_train_text)).astype("float32")
+# Xte_w_cnb = (word_vec_cnb.transform(X_test_text)).astype("float32")
+
+# Xtr_c_cnb = (char_vec_cnb.fit_transform(X_train_text)).astype("float32")
+# Xte_c_cnb = (char_vec_cnb.transform(X_test_text)).astype("float32")
+
+# k_word = 50000         
+# k_char = 35000         
+
+# sel_w_cnb = SelectKBest(chi2, k=k_word)
+# sel_c_cnb = SelectKBest(chi2, k=k_char)
+
+# Xtr_ws_cnb = sel_w_cnb.fit_transform(Xtr_w_cnb, y_train)
+# Xte_ws_cnb = sel_w_cnb.transform(Xte_w_cnb)
+
+# Xtr_cs_cnb = sel_c_cnb.fit_transform(Xtr_c_cnb, y_train)
+# Xte_cs_cnb = sel_c_cnb.transform(Xte_c_cnb)
+
+# Xtr_cnb = hstack([Xtr_ws_cnb, Xtr_cs_cnb])
+# Xte_cnb = hstack([Xte_ws_cnb, Xte_cs_cnb])
 
 # cnb = ComplementNB(alpha=1e-8)
-# cnb.fit(X_train_small_cnb, y_train)
-# cnb_train_pred = cnb.predict(X_train_small_cnb)
-# cnb_test_pred = cnb.predict(X_test_small_cnb)
+# sw = compute_sample_weight(class_weight={"Necessary": 1.8, "Preferences": 1.4, "Statistics": 1.3, "Marketing": 1.0}, y=y_train)
+# cnb.fit(Xtr_cnb, y_train, sample_weight=sw)
+# cnb_train_pred = cnb.predict(Xtr_cnb)
+# cnb_test_pred = cnb.predict(Xte_cnb)
 # evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 
 # print("\n" + "="*80)
