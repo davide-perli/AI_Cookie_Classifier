@@ -1,7 +1,7 @@
 import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, lightgbm as lgb, xgboost as xgb, catboost
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LogisticRegression, SGDClassifier, Perceptron, RidgeClassifier, RidgeClassifierCV
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, StackingClassifier, VotingClassifier
@@ -17,6 +17,8 @@ from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer
 from scipy.sparse import hstack
+
+# hasing pe date
 
 
 rows = []
@@ -98,11 +100,19 @@ print("TF-IDF shape:", X_train_encoded.shape)
 
 print(X_train_encoded.dtype)
 
-def evaluate_model(model_name, y_true, y_pred, train_pred):
+def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_average="macro"):
     train_acc = accuracy_score(y_train, train_pred)
     test_acc = accuracy_score(y_true, y_pred)
     print(f"\n{model_name} Training Accuracy: {train_acc*100:.2f}%")
     print(f"{model_name} Test Accuracy: {test_acc*100:.2f}%")
+
+    train_f1 = None
+    test_f1 = None
+    if include_f1:
+        train_f1 = f1_score(y_train, train_pred, average=f1_average, zero_division=0)
+        test_f1 = f1_score(y_true, y_pred, average=f1_average, zero_division=0)
+        print(f"{model_name} Training F1 ({f1_average}): {train_f1*100:.2f}")
+        print(f"{model_name} Test F1 ({f1_average}): {test_f1*100:.2f}")
 
     print(f"\nUnique categories in test set: {sorted(y_true.unique())}")
     print("Test set category distribution:")
@@ -127,7 +137,14 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
     sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=categories, yticklabels=categories)
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
-    plt.title(f'Confusion Matrix - {model_name} Test Accuracy: {test_acc*100:.2f}%')
+    if include_f1 and test_f1 is not None:
+        plt.title(
+            f"Confusion Matrix - {model_name}\n"
+            f"Test Accuracy: {test_acc*100:.2f}%\n"
+            f"Test F1 ({f1_average}): {test_f1*100:.2f}"
+        )
+    else:
+        plt.title(f'Confusion Matrix - {model_name} Test Accuracy: {test_acc*100:.2f}%')
     plt.xticks(rotation=45, ha='right')
     plt.yticks(rotation=0)
     plt.tight_layout()
@@ -140,36 +157,42 @@ def evaluate_model(model_name, y_true, y_pred, train_pred):
     
     # plt.show()
 
-# print("\n" + "="*80)
-# print("KNN")
-# print("="*80)
+print("\n" + "="*80)
+print("KNN")
+print("="*80)
 
-# # 93.30%
+# 95.18%
 
-# svd = TruncatedSVD(n_components=16, random_state=42)
-# X_train_reduced = svd.fit_transform(X_train_encoded)
-# X_test_reduced = svd.transform(X_test_encoded)
+svd = TruncatedSVD(n_components=128, random_state=42)
+X_train_reduced = svd.fit_transform(X_train_encoded)
+X_test_reduced = svd.transform(X_test_encoded)
 
-# # Normalize so cosine = dot product
+# Normalize so cosine = dot product
 
-# normalizer = Normalizer(copy=False)
-# X_train_reduced = normalizer.fit_transform(X_train_reduced)
-# X_test_reduced = normalizer.transform(X_test_reduced)
+normalizer = Normalizer(copy=False)
+X_train_reduced = normalizer.fit_transform(X_train_reduced)
+X_test_reduced = normalizer.transform(X_test_reduced)
 
-# knn = KNeighborsClassifier(
-#     n_neighbors=7,            
-#     weights='distance',
-#     metric='euclidean',       # after normalization == cosine
-#     algorithm='auto',
-#     n_jobs=-1
-# )
+def custom_weights(distances):
+    return (1 / (distances + 1e-5) ** 2.2) * np.exp(-distances)
 
-# knn.fit(X_train_reduced, y_train)
+# 91.67%
 
-# model_train_knn_preds = knn.predict(X_train_reduced)
-# test_knn_preds = knn.predict(X_test_reduced)
+knn = KNeighborsClassifier(
+    n_neighbors=7,            
+    weights=custom_weights,
+    metric='euclidean',       # after normalization == cosine
+    algorithm='auto',
+    n_jobs=-1
+)
 
-# evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
+
+knn.fit(X_train_reduced, y_train)
+
+model_train_knn_preds = knn.predict(X_train_reduced)
+test_knn_preds = knn.predict(X_test_reduced)
+
+evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
 
 
 # print("\n" + "="*80)
@@ -418,25 +441,34 @@ print("\n" + "="*80)
 print("TRYING: Ada Boost Classifier")
 print("="*80)
 
-svd_ada = TruncatedSVD(n_components=6, random_state=42)
+svd_ada = TruncatedSVD(n_components=64, random_state=42)
+
 X_train_ada = svd_ada.fit_transform(X_train_encoded)
 X_test_ada = svd_ada.transform(X_test_encoded)
 
+class_weights = {
+    'Necessary': 3.0,
+    'Preferences': 6.0,
+    'Statistics': 1.0,
+    'Marketing': 1.0
+}
+
+sample_weights = y_train.map(class_weights).values
+
 ada_base_tree = DecisionTreeClassifier(
-    max_depth=2,
-    min_samples_leaf=10,
-    # class_weight='balanced',
+    max_depth=3,
+    min_samples_leaf=5,
     random_state=0
 )
 
 abc = AdaBoostClassifier(
     estimator=ada_base_tree,
-    n_estimators=100,
-    learning_rate=0.8,
+    n_estimators=150,
+    learning_rate=0.6,
     random_state=0
 )
 
-abc.fit(X_train_ada, y_train)
+abc.fit(X_train_ada, y_train, sample_weight=sample_weights)
 
 abc_train_pred = abc.predict(X_train_ada)
 abc_test_pred = abc.predict(X_test_ada)
