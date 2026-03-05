@@ -196,66 +196,6 @@ evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
 
 
 # print("\n" + "="*80)
-# print("KNN WITH INVERSE CLASS WEIGHTING")
-# print("="*80)
-
-# # 93.14%
-
-# knn = KNeighborsClassifier(
-#     n_neighbors=7,
-#     weights='distance',
-#     metric='euclidean',
-#     algorithm='auto',
-#     n_jobs=-1
-# )
-
-# knn.fit(X_train_reduced, y_train)
-
-# # Get neighbors
-# distances, indices = knn.kneighbors(X_test_reduced)
-
-# # Better class weights
-# class_freq = y_train.value_counts()
-# class_weight_dict = {
-#     cls: np.sqrt(len(y_train) / freq) ** 0.3
-#     for cls, freq in class_freq.items()
-# }
-
-# y_unique = list(class_weight_dict.keys())
-
-# weighted_knn_preds = []
-
-# for i in range(len(indices)):
-#     neighbor_indices = indices[i]
-#     neighbor_distances = distances[i]
-#     neighbor_labels = y_train.iloc[neighbor_indices].values
-
-#     # Distance weights
-#     distance_weights = 1.0 / (neighbor_distances + 1e-8)
-
-#     # Class weights
-#     class_weights = np.array([
-#         class_weight_dict[label]
-#         for label in neighbor_labels
-#     ])
-
-#     combined_weights = distance_weights * class_weights
-
-#     class_scores = {}
-#     for cls in y_unique:
-#         mask = neighbor_labels == cls
-#         class_scores[cls] = combined_weights[mask].sum()
-
-#     pred = max(class_scores, key=class_scores.get)
-#     weighted_knn_preds.append(pred)
-
-# weighted_knn_preds = np.array(weighted_knn_preds)
-
-# train_preds_knnww_weighted = knn.predict(X_train_reduced)
-
-# evaluate_model("KNN WITH INVERSE CLASS WEIGHTING", y_test, weighted_knn_preds, train_preds_knnww_weighted)
-
-# print("\n" + "="*80)
 # print("TRYING: Logistic Regression with manual weights")
 # print("="*80)
 

@@ -184,7 +184,6 @@ sequenceDiagram
 The project compares multiple linear models:
 
 - KNN
-- KNN With Inver Class Weighting
 - Logistic Regression
 - Logistic Regression With Manual Weights
 - SGD Classifier
@@ -239,7 +238,6 @@ The confusion matrix is also saved as a PDF file for each model run.
 You can find the generated confusion matrices here:
 
 - [KNN](confusion_matrix_KNN.pdf)
-- [KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.pdf)
 - [Logistic Regression](confusion_matrix_Logistic_Regression_Balanced.pdf)
 - [Logistic Regression With Manual Weights](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
 - [SGD Classifier](confusion_matrix_SGD_Classifier.pdf)
@@ -272,10 +270,6 @@ You can find the generated confusion matrices here:
 #### KNN
 
 ![KNN](confusion_matrix_KNN.png)
-
-#### KNN With Inverse Class Weighting
-
-![KNN With Inverse Class Weighting](confusion_matrix_KNN_WITH_INVERSE_CLASS_WEIGHTING.png)
 
 #### Logistic Regression
 
