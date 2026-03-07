@@ -1,4 +1,7 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, lightgbm as lgb, xgboost as xgb, catboost
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re
+from pathlib import Path
+from collections import Counter
+from wordcloud import WordCloud
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
@@ -18,8 +21,412 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer
 from scipy.sparse import hstack
 
+CONFUSION_MATRICES_PDF_DIR = Path('confusion_matrices_pdf')
+CONFUSION_MATRICES_PNG_DIR = Path('confusion_matrices_png')
+
 # hasing pe date
 
+class CookieDataLoader:
+    def __init__(self, csv_path='classified_cookies.csv', test_size=0.1, random_state=42):
+        self.csv_path = csv_path
+        self.test_size = test_size
+        self.random_state = random_state
+        self._load_and_split()
+
+    def _load_and_split(self):
+        rows = []
+        with open(self.csv_path, 'r', encoding='utf-8', errors='replace') as f:
+            for line in f:
+                parts = line.strip().split(',', 6) # Skip id (just a counter)
+                row = parts[1:] if len(parts) > 1 else []
+                while len(row) < 6: # Pad with empty strings if row has fewer than 6 columns
+                    row.append('')
+                rows.append(row[:6]) # Only keep first 6 columns
+        df = pd.DataFrame(rows, columns=['Cookie_Name', 'Category', 'Provider', 'Site_Found', 'Duration', 'Description'])
+        df['Category'] = df['Category'].replace({'Functional':'Preferences'})
+        valid_categories = ['Marketing','Statistics','Necessary','Preferences']
+        df = df[df['Category'].isin(valid_categories)]
+
+        self.df = df
+        train_df, test_df = train_test_split(df, test_size=self.test_size, random_state=self.random_state)
+        self.X_train_raw = train_df[['Cookie_Name','Provider','Site_Found','Duration']]
+        self.y_train = train_df['Category']
+        self.X_test_raw = test_df[['Cookie_Name','Provider','Site_Found','Duration']].copy()
+        self.y_test = test_df['Category']
+
+    @staticmethod
+    def combine_features(df):
+        def clean_domain(text):
+            if pd.isna(text):
+                return ''
+            return text.replace('.', ' ').replace('-', ' ')
+        return (df['Cookie_Name'].fillna('') + ' ' +
+                df['Provider'].apply(clean_domain) + ' ' +
+                df['Site_Found'].apply(clean_domain) + ' ' +
+                df['Duration'].fillna(''))
+    
+    @staticmethod
+    def data_statistics(df):
+        CookieDataLoader._plot_category_distribution(df)
+        CookieDataLoader._plot_category_clusters(df)
+        CookieDataLoader._plot_top_cookie_names(df)
+        CookieDataLoader._plot_top_words(df)
+        CookieDataLoader._plot_top_ngrams(df)
+        CookieDataLoader._plot_cookie_wordcloud(df)
+
+    @staticmethod
+    def _plot_category_distribution(df):
+        """Plot distribution of cookie categories."""
+        plt.figure(figsize=(12,6))
+
+        ax = sns.countplot(
+            data=df,
+            x='Category',
+            hue='Category',
+            order=df['Category'].value_counts().index,
+            palette='viridis',
+            legend=False
+        )
+
+        for p in ax.patches:
+            ax.annotate(
+                f'{int(p.get_height())}',
+                (p.get_x() + p.get_width()/2, p.get_height()),
+                ha='center',
+                va='bottom'
+            )
+
+        plt.title('Distribution of Cookie Categories')
+        plt.xlabel('Cookie Category')
+        plt.ylabel('Count')
+
+        plt.tight_layout()
+        plt.show()
+
+    @staticmethod
+    def _plot_category_clusters(df, sample_size=30000):
+
+        df_sample = df.sample(min(sample_size, len(df)), random_state=42)
+
+        corpus = CookieDataLoader.combine_features(df_sample)
+
+        tfidf = TfidfVectorizer(max_features=5000)
+        X = tfidf.fit_transform(corpus)
+
+        svd = TruncatedSVD(n_components=2, random_state=42)
+        coords = svd.fit_transform(X)
+
+        df_sample["pca_x"] = coords[:,0]
+        df_sample["pca_y"] = coords[:,1]
+
+        plt.figure(figsize=(12,8))
+
+        sns.kdeplot(
+            data=df_sample,
+            x="pca_x",
+            y="pca_y",
+            hue="Category",
+            fill=True,
+            alpha=0.6
+        )
+
+        plt.title("Density Clusters of Cookie Categories")
+        plt.show()
+
+    @staticmethod
+    def _plot_top_cookie_names(df, top_n=20):
+        top_cookies = df['Cookie_Name'].value_counts().head(top_n)
+
+        plt.figure(figsize=(12,6))
+
+        sns.barplot(
+            x=top_cookies.values,
+            y=top_cookies.index,
+            hue=top_cookies.index,
+            palette='viridis',
+            legend=False
+        )
+
+        plt.title(f'Top {top_n} Most Frequent Cookie Names')
+        plt.xlabel('Frequency')
+        plt.ylabel('Cookie Name')
+
+        plt.tight_layout()
+        plt.show()
+
+    @staticmethod
+    def _plot_top_words(df, top_n=20):
+
+        # corpus = CookieDataLoader.combine_features(df)
+        corpus = df['Cookie_Name'].dropna().astype(str)
+
+        words = []
+        for text in corpus:
+            tokens = re.findall(r'\w+', str(text).lower())
+            words.extend(tokens)
+
+        top_words = Counter(words).most_common(top_n)
+        words_df = pd.DataFrame(top_words, columns=['word','count'])
+
+        plt.figure(figsize=(10,8))
+
+        sns.barplot(
+            data=words_df,
+            y='word',
+            x='count',
+            hue='word',
+            palette='Blues_r',
+            legend=False
+        )
+
+        plt.title(f'Top {top_n} Most Frequent Words in Cookies')
+        plt.xlabel('Frequency')
+        plt.ylabel('Word')
+
+        plt.tight_layout()
+        plt.show()
+
+    @staticmethod
+    def _plot_top_ngrams(df, ngram_range=(2,2), top_n=20):
+
+        # corpus = CookieDataLoader.combine_features(df)
+        corpus = df['Cookie_Name'].dropna().astype(str)
+
+        vectorizer = CountVectorizer(
+            ngram_range=ngram_range,
+            stop_words='english'
+        )
+
+        X = vectorizer.fit_transform(corpus)
+
+        counts = X.sum(axis=0).A1
+        ngrams = vectorizer.get_feature_names_out()
+
+        ngram_df = pd.DataFrame({
+            "ngram": ngrams,
+            "count": counts
+        })
+
+        ngram_df = ngram_df.sort_values(by="count", ascending=False).head(top_n)
+
+        plt.figure(figsize=(10,8))
+
+        sns.barplot(
+            data=ngram_df,
+            y="ngram",
+            x="count",
+            hue="ngram",
+            palette="mako",
+            legend=False
+        )
+
+        plt.title(f"Top {top_n} Most Frequent {ngram_range[0]}-grams")
+        plt.xlabel("Frequency")
+        plt.ylabel("N-gram")
+
+        plt.tight_layout()
+        plt.show()
+
+    @staticmethod
+    def _plot_cookie_wordcloud(df):
+
+        # Combine cookie names into one corpus
+        all_text = " ".join(df['Cookie_Name'].dropna().astype(str))
+
+        wc = WordCloud(
+            width=900,
+            height=450,
+            background_color="white",
+            colormap="viridis",
+            max_words=200
+        ).generate(all_text)
+
+        plt.figure(figsize=(14,7))
+        plt.imshow(wc, interpolation="bilinear")
+        plt.axis("off")
+        plt.title("Word Cloud of Cookie Names")
+
+        plt.tight_layout()
+        plt.show()
+
+class CookieClassifier:
+    def __init__(self, loader, model_name="MLP", use_custom_weights=False, max_features=80000, k_best=None, max_features_chars=False, k_best_chars=None):
+        self.loader = loader
+        self.model_name = model_name
+        self.use_custom_weights = use_custom_weights
+        self.max_features = None if max_features is True else max_features
+        self.k_best = k_best
+        # Handle char max_features: True -> None (all char features), False -? skip
+        self.max_features_chars = None if max_features_chars is True else max_features_chars
+        self.k_best_chars = k_best_chars
+        # Prepare text and labels
+        self._prepare_text()
+        # Vectorize
+        self._vectorize()
+        # Select top-k features if requested
+        self._select_top_features()
+        # Vectorize chars if needed
+        self._vectorize_chars()
+        # Select top features on chars n-grams if needed
+        self._select_top_features_chars()
+        # Prepare model
+        self._prepare_model()
+        # Train automatically
+        self.train()
+        # Evaluate automatically
+        self.evaluate()
+    
+    def _prepare_text(self):
+        self.X_train_text = self.loader.combine_features(self.loader.X_train_raw)
+        self.X_test_text = self.loader.combine_features(self.loader.X_test_raw)
+        self.y_train = self.loader.y_train
+        self.y_test = self.loader.y_test
+
+    def _vectorize(self):
+        self.tfidf = TfidfVectorizer(
+            max_features=self.max_features,
+            ngram_range=(1,2),
+            min_df=10,
+            sublinear_tf=True,
+            dtype=np.float32
+        )
+        self.X_train_vec = self.tfidf.fit_transform(self.X_train_text)
+        self.X_test_vec = self.tfidf.transform(self.X_test_text)
+
+    def _select_top_features(self):
+        if self.k_best is not None and self.k_best < self.X_train_vec.shape[1]:
+            selector = SelectKBest(chi2, k=self.k_best)
+            self.X_train_vec = selector.fit_transform(self.X_train_vec, self.y_train)
+            self.X_test_vec = selector.transform(self.X_test_vec)
+            self.selector = selector
+        else:
+            self.selector = None
+
+    def _vectorize_chars(self):
+        if self.max_features_chars:
+            self.tfidf_chars = TfidfVectorizer(
+                analyzer='char_wb',
+                ngram_range=(3,6),
+                max_features=self.max_features_chars,
+                sublinear_tf=True,
+                dtype=np.float32
+            )
+            self.X_train_chars = self.tfidf_chars.fit_transform(self.X_train_text)
+            self.X_test_chars = self.tfidf_chars.transform(self.X_test_text)
+
+            # Apply top-k if requested
+            if self.k_best_chars is not None:
+                self._select_top_features_chars()
+
+            # Combine with word-level TF-IDF
+            self.X_train_vec = hstack([self.X_train_vec, self.X_train_chars])
+            self.X_test_vec = hstack([self.X_test_vec, self.X_test_chars])
+
+    def _select_top_features_chars(self):
+        if not hasattr(self, 'X_train_chars') or self.X_train_chars is None:
+            self.selector_chars = None
+            return
+
+        if self.k_best_chars is not None and self.k_best_chars < self.X_train_chars.shape[1]:
+            selector = SelectKBest(chi2, k=self.k_best_chars)
+            self.X_train_chars = selector.fit_transform(self.X_train_chars, self.y_train)
+            self.X_test_chars = selector.transform(self.X_test_chars)
+            self.selector_chars = selector
+        else:
+            self.selector_chars = None
+
+    def _prepare_model(self):
+        if self.model_name == "MLP":
+            from sklearn.neural_network import MLPClassifier
+            self.model = MLPClassifier(
+                hidden_layer_sizes=(200,),
+                activation='relu',
+                solver='adam',
+                alpha=1e-3,
+                batch_size=8192,
+                learning_rate_init=0.01,
+                max_iter=200,
+                verbose=False,
+                early_stopping=True,
+                validation_fraction=0.1,
+                random_state=42
+            )
+        elif self.model_name == "LogisticRegression":
+            from sklearn.linear_model import LogisticRegression
+            self.model = LogisticRegression(
+                max_iter=10000,
+                solver='saga',
+                class_weight='balanced',
+                random_state=42
+            )
+        else:
+            raise ValueError(f"Model {self.model_name} not implemented yet")
+
+    def train(self):
+        self.model.fit(self.X_train_vec, self.y_train)
+
+    def evaluate(self):
+        train_pred = self.model.predict(self.X_train_vec)
+        test_pred = self.model.predict(self.X_test_vec)
+        train_acc = accuracy_score(self.y_train, train_pred)
+        test_acc = accuracy_score(self.y_test, test_pred)
+        train_f1 = f1_score(self.y_train, train_pred, average='macro', zero_division=0)
+        test_f1 = f1_score(self.y_test, test_pred, average='macro', zero_division=0)
+        print(f"{self.model_name} - Training Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}")
+        print(f"{self.model_name} - Training F1: {train_f1:.4f}, Test F1: {test_f1:.4f}")
+
+        # Confusion matrix (saved as PDF + PNG, same style as evaluate_model())
+        classes = list(getattr(self.model, 'classes_', sorted(pd.unique(pd.concat([self.y_train, self.y_test])))))
+        conf_matrix = confusion_matrix(self.y_test, test_pred, labels=classes)
+
+        print(f"\nConfusion Matrix ({self.model_name}):")
+        print(f"Categories: {classes}")
+        print(conf_matrix)
+
+        print("\nPer-category accuracy:")
+        for i, cat in enumerate(classes):
+            correct = conf_matrix[i, i]
+            total = conf_matrix[i, :].sum()
+            acc = (correct / total * 100) if total > 0 else 0
+            print(f"  {cat}: {correct}/{total} = {acc:.2f}%")
+
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.title(
+            f"Confusion Matrix - {self.model_name}\n"
+            f"Test Accuracy: {test_acc*100:.2f}%\n"
+            f"Test F1 (macro): {test_f1*100:.2f}"
+        )
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        plt.tight_layout()
+
+        safe_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', str(self.model_name)).strip('_')
+
+        CONFUSION_MATRICES_PDF_DIR.mkdir(parents=True, exist_ok=True)
+        CONFUSION_MATRICES_PNG_DIR.mkdir(parents=True, exist_ok=True)
+
+        pdf_path = CONFUSION_MATRICES_PDF_DIR / f'confusion_matrix_{safe_name}.pdf'
+        png_path = CONFUSION_MATRICES_PNG_DIR / f'confusion_matrix_{safe_name}.png'
+        plt.savefig(pdf_path, format='pdf')
+        plt.savefig(png_path, format='png')
+        plt.close()
+        print(f"Saved confusion matrix to: {png_path} and {pdf_path}")
+
+
+data_loader = CookieDataLoader()
+CookieDataLoader.data_statistics(data_loader.df)
+
+# classifier = CookieClassifier(
+#     loader=data_loader,
+#     model_name="LogisticRegression",
+#     max_features=50000,
+#     k_best=20000,
+#     max_features_chars=10000,
+#     k_best_chars=5000
+# )
 
 rows = []
 with open('classified_cookies.csv', 'r', encoding='utf-8', errors='replace') as f:
@@ -148,51 +555,57 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
     plt.xticks(rotation=45, ha='right')
     plt.yticks(rotation=0)
     plt.tight_layout()
-    
-    filename = f'confusion_matrix_{model_name.replace(" ", "_").replace("(", "").replace(")", "")}.pdf'
-    plt.savefig(filename, format='pdf')
-    filename = f'confusion_matrix_{model_name.replace(" ", "_").replace("(", "").replace(")", "")}.png'
-    plt.savefig(filename, format='png')
-    print(f"Saved confusion matrix to: {filename}")
+
+    safe_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', str(model_name)).strip('_')
+
+    CONFUSION_MATRICES_PDF_DIR.mkdir(parents=True, exist_ok=True)
+    CONFUSION_MATRICES_PNG_DIR.mkdir(parents=True, exist_ok=True)
+
+    pdf_path = CONFUSION_MATRICES_PDF_DIR / f'confusion_matrix_{safe_name}.pdf'
+    png_path = CONFUSION_MATRICES_PNG_DIR / f'confusion_matrix_{safe_name}.png'
+    plt.savefig(pdf_path, format='pdf')
+    plt.savefig(png_path, format='png')
+    plt.close()
+    print(f"Saved confusion matrix to: {png_path} and {pdf_path}")
     
     # plt.show()
 
-print("\n" + "="*80)
-print("KNN")
-print("="*80)
+# print("\n" + "="*80)
+# print("KNN")
+# print("="*80)
 
-# 95.18%
+# # 95.18%
 
-svd = TruncatedSVD(n_components=128, random_state=42)
-X_train_reduced = svd.fit_transform(X_train_encoded)
-X_test_reduced = svd.transform(X_test_encoded)
+# svd = TruncatedSVD(n_components=128, random_state=42)
+# X_train_reduced = svd.fit_transform(X_train_encoded)
+# X_test_reduced = svd.transform(X_test_encoded)
 
-# Normalize so cosine = dot product
+# # Normalize so cosine = dot product
 
-normalizer = Normalizer(copy=False)
-X_train_reduced = normalizer.fit_transform(X_train_reduced)
-X_test_reduced = normalizer.transform(X_test_reduced)
+# normalizer = Normalizer(copy=False)
+# X_train_reduced = normalizer.fit_transform(X_train_reduced)
+# X_test_reduced = normalizer.transform(X_test_reduced)
 
-def custom_weights(distances):
-    return (1 / (distances + 1e-5) ** 2.2) * np.exp(-distances)
+# def custom_weights(distances):
+#     return (1 / (distances + 1e-5) ** 2.2) * np.exp(-distances)
 
-# 91.67%
+# # 91.67%
 
-knn = KNeighborsClassifier(
-    n_neighbors=7,            
-    weights=custom_weights,
-    metric='euclidean',       # after normalization == cosine
-    algorithm='auto',
-    n_jobs=-1
-)
+# knn = KNeighborsClassifier(
+#     n_neighbors=7,            
+#     weights=custom_weights,
+#     metric='euclidean',       # after normalization == cosine
+#     algorithm='auto',
+#     n_jobs=-1
+# )
 
 
-knn.fit(X_train_reduced, y_train)
+# knn.fit(X_train_reduced, y_train)
 
-model_train_knn_preds = knn.predict(X_train_reduced)
-test_knn_preds = knn.predict(X_test_reduced)
+# model_train_knn_preds = knn.predict(X_train_reduced)
+# test_knn_preds = knn.predict(X_test_reduced)
 
-evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
+# evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
 
 
 # print("\n" + "="*80)
@@ -376,24 +789,36 @@ evaluate_model("KNN", y_test, test_knn_preds, model_train_knn_preds)
 # dtc_test_pred = dtc.predict(X_test_encoded)
 # evaluate_model("Decision Tree Classifier", y_test, dtc_test_pred, dtc_train_pred)
 
-# # NEED FURTHER TUNING (current 63.75%)
+# # NEED FURTHER TUNING (current 82.13%)
 print("\n" + "="*80)
 print("TRYING: Ada Boost Classifier")
 print("="*80)
 
-svd_ada = TruncatedSVD(n_components=64, random_state=42)
+svd_ada = TruncatedSVD(n_components=256, random_state=42)
 
 X_train_ada = svd_ada.fit_transform(X_train_encoded)
 X_test_ada = svd_ada.transform(X_test_encoded)
 
 class_weights = {
     'Necessary': 3.0,
-    'Preferences': 6.0,
+    'Preferences': 5.0,
     'Statistics': 1.0,
     'Marketing': 1.0
 }
 
-sample_weights = y_train.map(class_weights).values
+from sklearn.utils import resample
+
+subset_size = 200000
+
+X_sub, y_sub = resample(
+    X_train_ada,
+    y_train,
+    n_samples=subset_size,
+    stratify=y_train,
+    random_state=42
+)
+
+sample_weights_sub = y_sub.map(class_weights).values
 
 ada_base_tree = DecisionTreeClassifier(
     max_depth=3,
@@ -403,13 +828,14 @@ ada_base_tree = DecisionTreeClassifier(
 
 abc = AdaBoostClassifier(
     estimator=ada_base_tree,
-    n_estimators=150,
-    learning_rate=0.6,
+    n_estimators=180,
+    learning_rate=0.4,
     random_state=0
 )
 
-abc.fit(X_train_ada, y_train, sample_weight=sample_weights)
+abc.fit(X_sub, y_sub, sample_weight=sample_weights_sub)
 
+# evaluate on full datasets
 abc_train_pred = abc.predict(X_train_ada)
 abc_test_pred = abc.predict(X_test_ada)
 
