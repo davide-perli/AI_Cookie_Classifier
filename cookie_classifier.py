@@ -11,6 +11,7 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, Stackin
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.pipeline import make_pipeline
+from sklearn.utils import resample
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import MultinomialNB, ComplementNB, BernoulliNB
@@ -23,6 +24,9 @@ from scipy.sparse import hstack
 
 CONFUSION_MATRICES_PDF_DIR = Path('confusion_matrices_pdf')
 CONFUSION_MATRICES_PNG_DIR = Path('confusion_matrices_png')
+DATA_ANALYSIS_PDF_DIR = Path('training_data_analysis_pdf')
+DATA_ANALYSIS_PNG_DIR = Path('training_data_analysis_png')
+MODEL_ACCURACY_DATA_DIR = Path('model_accuracies')
 
 # hasing pe date
 
@@ -67,16 +71,18 @@ class CookieDataLoader:
     
     @staticmethod
     def data_statistics(df):
+        DATA_ANALYSIS_PDF_DIR.mkdir(parents=True, exist_ok=True)
+        DATA_ANALYSIS_PNG_DIR.mkdir(parents=True, exist_ok=True)
         CookieDataLoader._plot_category_distribution(df)
         CookieDataLoader._plot_category_clusters(df)
         CookieDataLoader._plot_top_cookie_names(df)
         CookieDataLoader._plot_top_words(df)
-        CookieDataLoader._plot_top_ngrams(df)
+        CookieDataLoader._plot_top_word_ngrams(df)
+        CookieDataLoader._plot_top_char_ngrams(df)
         CookieDataLoader._plot_cookie_wordcloud(df)
 
     @staticmethod
     def _plot_category_distribution(df):
-        """Plot distribution of cookie categories."""
         plt.figure(figsize=(12,6))
 
         ax = sns.countplot(
@@ -101,7 +107,11 @@ class CookieDataLoader:
         plt.ylabel('Count')
 
         plt.tight_layout()
-        plt.show()
+        category_distribution_path_pdf = DATA_ANALYSIS_PDF_DIR / f'category_distribution.pdf'
+        category_distribution_path_png = DATA_ANALYSIS_PNG_DIR / f'category_distribution.png'
+        plt.savefig(category_distribution_path_pdf, format='pdf')
+        plt.savefig(category_distribution_path_png, format='png')
+        plt.close()
 
     @staticmethod
     def _plot_category_clusters(df, sample_size=30000):
@@ -131,7 +141,12 @@ class CookieDataLoader:
         )
 
         plt.title("Density Clusters of Cookie Categories")
-        plt.show()
+        plt.tight_layout()
+        category_clusters_path_pdf = DATA_ANALYSIS_PDF_DIR / f'category_clusters.pdf'
+        category_clusters_path_png = DATA_ANALYSIS_PNG_DIR / f'category_clusters.png'
+        plt.savefig(category_clusters_path_pdf, format='pdf')
+        plt.savefig(category_clusters_path_png, format='png')
+        plt.close()
 
     @staticmethod
     def _plot_top_cookie_names(df, top_n=20):
@@ -152,13 +167,17 @@ class CookieDataLoader:
         plt.ylabel('Cookie Name')
 
         plt.tight_layout()
-        plt.show()
+        top_cookie_names_path_pdf = DATA_ANALYSIS_PDF_DIR / f'top_cookie_names.pdf'
+        top_cookie_names_path_png = DATA_ANALYSIS_PNG_DIR / f'top_cookie_names.png'
+        plt.savefig(top_cookie_names_path_pdf, format='pdf')
+        plt.savefig(top_cookie_names_path_png, format='png')
+        plt.close()
 
     @staticmethod
     def _plot_top_words(df, top_n=20):
 
         # corpus = CookieDataLoader.combine_features(df)
-        corpus = df['Cookie_Name'].dropna().astype(str)
+        corpus = df['Cookie_Name'].dropna().astype(str).str.replace(r"[._\-]", " ", regex=True)
 
         words = []
         for text in corpus:
@@ -184,15 +203,20 @@ class CookieDataLoader:
         plt.ylabel('Word')
 
         plt.tight_layout()
-        plt.show()
+        top_words_path_pdf = DATA_ANALYSIS_PDF_DIR / f'top_words.pdf'
+        top_words_path_png = DATA_ANALYSIS_PNG_DIR / f'top_words.png'
+        plt.savefig(top_words_path_pdf, format='pdf')
+        plt.savefig(top_words_path_png, format='png')
+        plt.close()
 
     @staticmethod
-    def _plot_top_ngrams(df, ngram_range=(2,2), top_n=20):
+    def _plot_top_word_ngrams(df, ngram_range=(2,3), top_n=20):
 
         # corpus = CookieDataLoader.combine_features(df)
-        corpus = df['Cookie_Name'].dropna().astype(str)
+        corpus = df['Cookie_Name'].dropna().astype(str).str.replace(r"[._\-]", " ", regex=True)
 
         vectorizer = CountVectorizer(
+            analyzer='word',
             ngram_range=ngram_range,
             stop_words='english'
         )
@@ -209,6 +233,8 @@ class CookieDataLoader:
 
         ngram_df = ngram_df.sort_values(by="count", ascending=False).head(top_n)
 
+        # print(f"Word ngrams: {ngram_df}")
+
         plt.figure(figsize=(10,8))
 
         sns.barplot(
@@ -220,12 +246,65 @@ class CookieDataLoader:
             legend=False
         )
 
-        plt.title(f"Top {top_n} Most Frequent {ngram_range[0]}-grams")
+        plt.title(f"Top {top_n} Most Frequent Word ({ngram_range[0]}, {ngram_range[1]})-grams")
         plt.xlabel("Frequency")
         plt.ylabel("N-gram")
 
         plt.tight_layout()
-        plt.show()
+        top_word_ngrams_path_pdf = DATA_ANALYSIS_PDF_DIR / f'top_word_ngrams.pdf'
+        top_word_ngrams_path_png = DATA_ANALYSIS_PNG_DIR / f'top_word_ngrams.png'
+        plt.savefig(top_word_ngrams_path_pdf, format='pdf')
+        plt.savefig(top_word_ngrams_path_png, format='png')
+        plt.close()
+
+# char_vec_mnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
+
+    @staticmethod
+    def _plot_top_char_ngrams(df, ngram_range=(3,6), top_n=20):
+
+        # corpus = CookieDataLoader.combine_features(df)
+        corpus = df['Cookie_Name'].dropna().astype(str).str.replace(r"[._\-]", " ", regex=True)
+
+        vectorizer = CountVectorizer(
+            analyzer='char_wb',
+            ngram_range=ngram_range
+        )
+
+        X = vectorizer.fit_transform(corpus)
+
+        counts = X.sum(axis=0).A1
+        ngrams = vectorizer.get_feature_names_out()
+
+        ngram_df = pd.DataFrame({
+            "ngram": ngrams,
+            "count": counts
+        })
+
+        ngram_df = ngram_df.sort_values(by="count", ascending=False).head(top_n)
+
+        # print(f"Char ngrams: {ngram_df}")
+
+        plt.figure(figsize=(10,8))
+
+        sns.barplot(
+            data=ngram_df,
+            y="ngram",
+            x="count",
+            hue="ngram",
+            palette="mako",
+            legend=False
+        )
+
+        plt.title(f"Top {top_n} Most Frequent Char ({ngram_range[0]}, {ngram_range[1]})-grams")
+        plt.xlabel("Frequency")
+        plt.ylabel("N-gram")
+
+        plt.tight_layout()
+        top_char_ngrams_path_pdf = DATA_ANALYSIS_PDF_DIR / f'top_char_ngrams.pdf'
+        top_char_ngrams_path_png = DATA_ANALYSIS_PNG_DIR / f'top_char_ngrams.png'
+        plt.savefig(top_char_ngrams_path_pdf, format='pdf')
+        plt.savefig(top_char_ngrams_path_png, format='png')
+        plt.close()
 
     @staticmethod
     def _plot_cookie_wordcloud(df):
@@ -247,7 +326,11 @@ class CookieDataLoader:
         plt.title("Word Cloud of Cookie Names")
 
         plt.tight_layout()
-        plt.show()
+        cookie_worldcloud_path_pdf = DATA_ANALYSIS_PDF_DIR / f'cookie_worldcloud.pdf'
+        cookie_worldcloud_path_png = DATA_ANALYSIS_PNG_DIR / f'cookie_worldcloud.png'
+        plt.savefig(cookie_worldcloud_path_pdf, format='pdf')
+        plt.savefig(cookie_worldcloud_path_png, format='png')
+        plt.close()
 
 class CookieClassifier:
     def __init__(self, loader, model_name="MLP", use_custom_weights=False, max_features=80000, k_best=None, max_features_chars=False, k_best_chars=None):
@@ -337,33 +420,204 @@ class CookieClassifier:
 
     def _prepare_model(self):
         if self.model_name == "MLP":
-            from sklearn.neural_network import MLPClassifier
             self.model = MLPClassifier(
-                hidden_layer_sizes=(200,),
-                activation='relu',
-                solver='adam',
-                alpha=1e-3,
-                batch_size=8192,
-                learning_rate_init=0.01,
-                max_iter=200,
-                verbose=False,
-                early_stopping=True,
-                validation_fraction=0.1,
-                random_state=42
+                    hidden_layer_sizes=(200,),   
+                    activation='relu', # tanh has 98,70%
+                    solver='adam',              
+                    alpha=1e-3,                 
+                    batch_size=8192,
+                    learning_rate_init=0.01,
+                    max_iter=200,
+                    verbose=False,
+                    early_stopping=True,
+                    validation_fraction=0.1,
+                    beta_1=0.9,
+                    epsilon=1e-8,    
+                    n_iter_no_change=10,
+                    random_state=42,
+            )
+        elif self.model_name == "KNN":
+            def KNN_custom_weights(distances):
+                return (1 / (distances + 1e-5) ** 2.2) * np.exp(-distances)
+            
+            self.model = KNeighborsClassifier(
+                n_neighbors=7,            
+                weights=KNN_custom_weights,
+                metric='euclidean',     
+                algorithm='auto',
+                n_jobs=-1
             )
         elif self.model_name == "LogisticRegression":
-            from sklearn.linear_model import LogisticRegression
             self.model = LogisticRegression(
                 max_iter=10000,
                 solver='saga',
+                random_state=0,
+                class_weight='balanced'
+            )
+        elif self.model_name == "LogisticRegression_MW":
+            self.model = LogisticRegression(
+                    l1_ratio=0.5,
+                    C=1.0,
+                    max_iter=10000,
+                    solver='saga',  
+                    random_state=0
+            )
+        elif self.model_name == "SGD":
+            self.model = SGDClassifier(
+                loss='hinge', 
+                penalty='l2',
+                alpha=1e-7,
+                max_iter=1000,
+                n_jobs=-1,
+                random_state=0,
+                learning_rate='optimal',
+                early_stopping=True,
+                validation_fraction=0.1,
+                n_iter_no_change=50,
+                class_weight={"Necessary": 3.0, "Preferences": 2.5, "Statistics": 1.0, "Marketing": 1.0}
+            )
+        elif self.model_name == "PAC":
+            self.model = SGDClassifier(
+                loss='hinge', 
+                penalty='l2',
+                alpha=1e-7,
+                max_iter=1000,
+                n_jobs=-1,
+                random_state=0,
+                learning_rate='pa1',
+                eta0=0.8,
+                early_stopping=True,
+                validation_fraction=0.1,
+                n_iter_no_change=50,
+                class_weight={"Necessary": 3.0, "Preferences": 2.5, "Statistics": 1.0, "Marketing": 1.0}
+            )
+        elif self.model_name == "LinearSVC":
+            self.model = LinearSVC(
+                C=1.3,
                 class_weight='balanced',
-                random_state=42
+                max_iter=20000,
+                random_state=0,
+                penalty='l1'
+            )
+        elif self.model_name == "LinearSVC_MW":
+            self.model = LinearSVC(
+                C=0.6,
+                max_iter=20000,
+                random_state=0,
+                penalty='l1',
+                class_weight={'Necessary': 3.5, 'Preferences': 2.7, 'Statistics': 1.7, 'Marketing': 1.0},
+            )
+        elif self.model_name == "RandomForest":
+            self.model = RandomForestClassifier(
+                n_estimators=300,
+                random_state=0,
+                n_jobs=-1,
+                class_weight='balanced_subsample',
+                max_depth=None,
+                max_features='sqrt'   
+            )
+        elif self.model_name == "DecisionTreeClassifier":
+            self.model = DecisionTreeClassifier(
+                criterion='gini',
+                max_depth=None,
+                max_features=None,
+                class_weight={"Necessary": 3.5, "Preferences": 2.7, "Statistics": 1.7, "Marketing": 1.0},
+                random_state=0
+            )
+        elif self.model_name == "AdaBoost":
+            ada_base_tree = DecisionTreeClassifier(
+                max_depth=3,
+                min_samples_leaf=5,
+                random_state=0
+            )
+
+            self.model = AdaBoostClassifier(
+                estimator=ada_base_tree,
+                n_estimators=180,
+                learning_rate=0.4,
+                random_state=0
+            )
+        elif self.model_name == "MultinomialNB":
+            # Word-level TF-IDF
+            self.word_vec_mnb = TfidfVectorizer(ngram_range=(1,2), min_df=4, sublinear_tf=True, dtype=np.float32)
+            Xtr_w = self.word_vec_mnb.fit_transform(self.X_train_text)
+            Xte_w = self.word_vec_mnb.transform(self.X_test_text)
+
+            # Char-level TF-IDF
+            self.char_vec_mnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True, dtype=np.float32)
+            Xtr_c = self.char_vec_mnb.fit_transform(self.X_train_text)
+            Xte_c = self.char_vec_mnb.transform(self.X_test_text)
+
+            # Feature selection
+            k_word = 18500
+            k_char = 8000
+            self.sel_w_mnb = SelectKBest(chi2, k=k_word)
+            self.sel_c_mnb = SelectKBest(chi2, k=k_char)
+
+            Xtr_w_sel = self.sel_w_mnb.fit_transform(Xtr_w, self.y_train)
+            Xte_w_sel = self.sel_w_mnb.transform(Xte_w)
+
+            Xtr_c_sel = self.sel_c_mnb.fit_transform(Xtr_c, self.y_train)
+            Xte_c_sel = self.sel_c_mnb.transform(Xte_c)
+
+            # Combine word + char features
+            self.X_train_vec = hstack([Xtr_w_sel, Xtr_c_sel])
+            self.X_test_vec = hstack([Xte_w_sel, Xte_c_sel])
+
+            self.model = MultinomialNB(alpha=1e-9)
+
+            self.sample_weights = compute_sample_weight(
+                class_weight={"Necessary": 1.4, "Preferences": 1.3, "Statistics": 1.3, "Marketing": 1.1},
+                y=self.y_train
             )
         else:
             raise ValueError(f"Model {self.model_name} not implemented yet")
+                
+    def _reduce_for_knn(self):
+        self.svd = TruncatedSVD(n_components=128, random_state=42)
+
+        self.X_train_vec = self.svd.fit_transform(self.X_train_vec)
+        self.X_test_vec = self.svd.transform(self.X_test_vec)
+
+        self.normalizer = Normalizer(copy=False)
+        self.X_train_vec = self.normalizer.fit_transform(self.X_train_vec)
+        self.X_test_vec = self.normalizer.transform(self.X_test_vec)
+
+    def _reduce_for_adaboost(self):
+        
+        self.svd_ada = TruncatedSVD(n_components=256, random_state=42)
+        self.X_train_vec_ada = self.svd_ada.fit_transform(self.X_train_vec)
+        self.X_test_vec_ada = self.svd_ada.transform(self.X_test_vec)
+
+        self.class_weights_ada = {'Necessary': 3.0, 'Preferences': 5.0, 'Statistics': 1.0, 'Marketing': 1.0}
+
+        subset_size = 200000 
+
+        self.X_train_sub, self.y_train_sub = resample(
+            self.X_train_vec_ada,
+            self.y_train,
+            n_samples=subset_size,
+            stratify=self.y_train,
+            random_state=42
+        )
+
+        self.sample_weights_sub = self.y_train_sub.map(self.class_weights_ada).values
 
     def train(self):
-        self.model.fit(self.X_train_vec, self.y_train)
+        if self.model_name == "KNN":
+            self._reduce_for_knn()
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "LogisticRegression_MW":
+            class_weight_map = {'Necessary': 5.0, 'Preferences': 2.0, 'Statistics': 1.5, 'Marketing': 1.0}      
+            sample_weight = self.y_train.map(class_weight_map).fillna(1.0)
+            self.model.fit(self.X_train_vec, self.y_train, sample_weight=sample_weight)
+        elif self.model_name == "AdaBoost":
+            self._reduce_for_adaboost()
+            self.model.fit(self.X_train_sub, self.y_train_sub, sample_weight=self.sample_weights_sub)
+        elif self.model_name == "MultinomialNaiveBayes":
+            self.model.fit(self.X_train_vec, self.y_train, sample_weight=self.sample_weights)
+        else:
+            self.model.fit(self.X_train_vec, self.y_train)
 
     def evaluate(self):
         train_pred = self.model.predict(self.X_train_vec)
@@ -789,26 +1043,24 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # dtc_test_pred = dtc.predict(X_test_encoded)
 # evaluate_model("Decision Tree Classifier", y_test, dtc_test_pred, dtc_train_pred)
 
-# # NEED FURTHER TUNING (current 82.13%)
+# # NEED FURTHER TUNING (current 86.20%)
 print("\n" + "="*80)
 print("TRYING: Ada Boost Classifier")
 print("="*80)
 
-svd_ada = TruncatedSVD(n_components=256, random_state=42)
+svd_ada = TruncatedSVD(n_components=300, random_state=42)
 
 X_train_ada = svd_ada.fit_transform(X_train_encoded)
 X_test_ada = svd_ada.transform(X_test_encoded)
 
 class_weights = {
-    'Necessary': 3.0,
-    'Preferences': 5.0,
+    'Necessary': 2.0,
+    'Preferences': 1.5,
     'Statistics': 1.0,
     'Marketing': 1.0
 }
 
-from sklearn.utils import resample
-
-subset_size = 200000
+subset_size = 300000
 
 X_sub, y_sub = resample(
     X_train_ada,
@@ -821,14 +1073,14 @@ X_sub, y_sub = resample(
 sample_weights_sub = y_sub.map(class_weights).values
 
 ada_base_tree = DecisionTreeClassifier(
-    max_depth=3,
+    max_depth=4,
     min_samples_leaf=5,
     random_state=0
 )
 
 abc = AdaBoostClassifier(
     estimator=ada_base_tree,
-    n_estimators=180,
+    n_estimators=200,
     learning_rate=0.4,
     random_state=0
 )
