@@ -1,0 +1,14 @@
+.git/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdf
+*.png
+catboost_info/
+confusion_matrices_pdf/
+confusion_matrices_png/
+training_data_analysis_pdf/
+training_data_analysis_png/
+model_accuracies/

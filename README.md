@@ -6,9 +6,87 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange.svg)
 ![Status](https://img.shields.io/badge/Project-Active-brightgreen.svg)
 
+## Setup
+
+This repo is a single-script workflow. Running it will:
+
+- Load `classified_cookies.csv`
+- Generate training data analysis plots under `training_data_analysis_*`
+- Train/evaluate the enabled model(s)
+- Write confusion matrices under `confusion_matrices_*`
+
+### Option A — Python virtual environment (`venv`)
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -r requirements.txt
+python cookie_classifier.py
+```
+
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -r requirements.txt
+python cookie_classifier.py
+```
+
+### Option B — Conda environment
+
+```bash
+conda create -n ai-cookie-classifier python=3.11 -y
+conda activate ai-cookie-classifier
+python -m pip install -U pip
+pip install -r requirements.txt
+python cookie_classifier.py
+```
+
+### Option C — Docker
+
+Build the image:
+
+```bash
+docker build -t ai-cookie-classifier .
+```
+
+Run it (mounting the current folder so generated PDFs/PNGs are saved back to your machine):
+
+PowerShell (Windows):
+
+```powershell
+docker run --rm -v ${PWD}:/app ai-cookie-classifier
+```
+
+Bash (macOS/Linux):
+
+```bash
+docker run --rm -v "$(pwd):/app" ai-cookie-classifier
+```
+
+If you don’t care about saving PDFs/PNGs to your machine (they’ll stay inside the container and be discarded when it exits):
+
+Bash (macOS/Linux):
+
+```bash
+docker run --rm ai-cookie-classifier
+```
+
+PowerShell (Windows):
+
+```powershell
+docker run --rm ai-cookie-classifier
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
+- [Setup](#setup)
 - [Training data](#training-data)
 - [Preprocessing](#preprocessing)
 - [Model overview](#model-overview)

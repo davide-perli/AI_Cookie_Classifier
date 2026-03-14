@@ -1043,7 +1043,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # dtc_test_pred = dtc.predict(X_test_encoded)
 # evaluate_model("Decision Tree Classifier", y_test, dtc_test_pred, dtc_train_pred)
 
-# # NEED FURTHER TUNING (current 89.24%)
+# # NEED FURTHER TUNING (current 93.95%)
 print("\n" + "="*80)
 print("TRYING: Ada Boost Classifier")
 print("="*80)
@@ -1073,7 +1073,7 @@ X_sub, y_sub = resample(
 sample_weights_sub = y_sub.map(class_weights).values
 
 ada_base_tree = DecisionTreeClassifier(
-    max_depth=6,
+    max_depth=10,
     # min_samples_leaf=5,
     random_state=0
 )
