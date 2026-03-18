@@ -1,4 +1,4 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
@@ -614,7 +614,7 @@ class CookieClassifier:
         elif self.model_name == "AdaBoost":
             self._reduce_for_adaboost()
             self.model.fit(self.X_train_sub, self.y_train_sub, sample_weight=self.sample_weights_sub)
-        elif self.model_name == "MultinomialNaiveBayes":
+        elif self.model_name == "MultinomialNB":
             self.model.fit(self.X_train_vec, self.y_train, sample_weight=self.sample_weights)
         else:
             self.model.fit(self.X_train_vec, self.y_train)
@@ -638,10 +638,13 @@ class CookieClassifier:
         print(conf_matrix)
 
         print("\nPer-category accuracy:")
+        per_category_accuracy = {}
         for i, cat in enumerate(classes):
-            correct = conf_matrix[i, i]
-            total = conf_matrix[i, :].sum()
+            correct = int(conf_matrix[i, i])
+            total = int(conf_matrix[i, :].sum())
             acc = (correct / total * 100) if total > 0 else 0
+            formatted = f"{correct}/{total} = {acc:.2f}%"
+            per_category_accuracy[cat] = formatted
             print(f"  {cat}: {correct}/{total} = {acc:.2f}%")
 
         plt.figure(figsize=(10, 8))
@@ -661,13 +664,30 @@ class CookieClassifier:
 
         CONFUSION_MATRICES_PDF_DIR.mkdir(parents=True, exist_ok=True)
         CONFUSION_MATRICES_PNG_DIR.mkdir(parents=True, exist_ok=True)
+        MODEL_ACCURACY_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
         pdf_path = CONFUSION_MATRICES_PDF_DIR / f'confusion_matrix_{safe_name}.pdf'
         png_path = CONFUSION_MATRICES_PNG_DIR / f'confusion_matrix_{safe_name}.png'
+        model_accuracy_path = MODEL_ACCURACY_DATA_DIR / f'{safe_name}_accuracies.json'
+
         plt.savefig(pdf_path, format='pdf')
         plt.savefig(png_path, format='png')
         plt.close()
         print(f"Saved confusion matrix to: {png_path} and {pdf_path}")
+
+        results = {
+            "model_name": self.model_name,
+            "training_accuracy": f"{train_acc*100:.2f}%",
+            "test_accuracy": f"{test_acc*100:.2f}%",
+            "training_f1_macro": f"{train_f1*100:.2f}" if train_f1 is not None else None,
+            "test_f1_macro": f"{test_f1*100:.2f}" if test_f1 is not None else None,
+            "per_category_accuracy(correct/total)": per_category_accuracy
+        }
+
+        with open(model_accuracy_path, "w") as f:
+            json.dump(results, f, indent=4)
+
+        print(f"Saved accuracy data to: {model_accuracy_path}")
 
 
 data_loader = CookieDataLoader()
@@ -675,11 +695,7 @@ CookieDataLoader.data_statistics(data_loader.df)
 
 # classifier = CookieClassifier(
 #     loader=data_loader,
-#     model_name="LogisticRegression",
-#     max_features=50000,
-#     k_best=20000,
-#     max_features_chars=10000,
-#     k_best_chars=5000
+#     model_name="MultinomialNB"
 # )
 
 rows = []
@@ -787,11 +803,14 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
     print(conf_matrix)
 
     print("\nPer-category accuracy:")
+    per_category_accuracy = {}
     for i, cat in enumerate(categories):
         if i < len(conf_matrix):
             correct = conf_matrix[i, i]
             total = conf_matrix[i, :].sum()
             acc = (correct / total * 100) if total > 0 else 0
+            formatted = f"{correct}/{total} = {acc:.2f}%"
+            per_category_accuracy[cat] = formatted
             print(f"  {cat}: {correct}/{total} = {acc:.2f}%")
 
     plt.figure(figsize=(10,8))
@@ -814,13 +833,30 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 
     CONFUSION_MATRICES_PDF_DIR.mkdir(parents=True, exist_ok=True)
     CONFUSION_MATRICES_PNG_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_ACCURACY_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     pdf_path = CONFUSION_MATRICES_PDF_DIR / f'confusion_matrix_{safe_name}.pdf'
     png_path = CONFUSION_MATRICES_PNG_DIR / f'confusion_matrix_{safe_name}.png'
+    model_accuracy_path = MODEL_ACCURACY_DATA_DIR / f'{safe_name}_accuracies.json'
+
     plt.savefig(pdf_path, format='pdf')
     plt.savefig(png_path, format='png')
     plt.close()
     print(f"Saved confusion matrix to: {png_path} and {pdf_path}")
+
+    results = {
+        "model_name": model_name,
+        "training_accuracy": f"{train_acc*100:.2f}%",
+        "test_accuracy": f"{test_acc*100:.2f}%",
+        "training_f1_macro": f"{train_f1*100:.2f}" if train_f1 is not None else None,
+        "test_f1_macro": f"{test_f1*100:.2f}" if test_f1 is not None else None,
+        "per_category_accuracy(correct/total)": per_category_accuracy
+    }
+
+    with open(model_accuracy_path, "w") as f:
+        json.dump(results, f, indent=4)
+
+    print(f"Saved accuracy data to: {model_accuracy_path}")
     
     # plt.show()
 
@@ -1044,55 +1080,55 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # evaluate_model("Decision Tree Classifier", y_test, dtc_test_pred, dtc_train_pred)
 
 # # NEED FURTHER TUNING (current 94.23%)
-print("\n" + "="*80)
-print("TRYING: Ada Boost Classifier")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Ada Boost Classifier")
+# print("="*80)
 
-svd_ada = TruncatedSVD(n_components=300, random_state=42)
+# svd_ada = TruncatedSVD(n_components=300, random_state=42)
 
-X_train_ada = svd_ada.fit_transform(X_train_encoded)
-X_test_ada = svd_ada.transform(X_test_encoded)
+# X_train_ada = svd_ada.fit_transform(X_train_encoded)
+# X_test_ada = svd_ada.transform(X_test_encoded)
 
-class_weights = {
-    'Necessary': 2.0,
-    'Preferences': 1.5,
-    'Statistics': 1.0,
-    'Marketing': 1.0
-}
+# class_weights = {
+#     'Necessary': 2.0,
+#     'Preferences': 1.5,
+#     'Statistics': 1.0,
+#     'Marketing': 1.0
+# }
 
-subset_size = 300000
+# subset_size = 300000
 
-X_sub, y_sub = resample(
-    X_train_ada,
-    y_train,
-    n_samples=subset_size,
-    stratify=y_train,
-    random_state=42
-)
+# X_sub, y_sub = resample(
+#     X_train_ada,
+#     y_train,
+#     n_samples=subset_size,
+#     stratify=y_train,
+#     random_state=42
+# )
 
-sample_weights_sub = y_sub.map(class_weights).values
+# sample_weights_sub = y_sub.map(class_weights).values
 
-ada_base_tree = DecisionTreeClassifier(
-    criterion='gini',
-    max_depth=15,
-    # min_samples_leaf=5,
-    random_state=0
-)
+# ada_base_tree = DecisionTreeClassifier(
+#     criterion='gini',
+#     max_depth=15,
+#     # min_samples_leaf=5,
+#     random_state=0
+# )
 
-abc = AdaBoostClassifier(
-    estimator=ada_base_tree,
-    n_estimators=200,
-    learning_rate=0.4,
-    random_state=0
-)
+# abc = AdaBoostClassifier(
+#     estimator=ada_base_tree,
+#     n_estimators=200,
+#     learning_rate=0.4,
+#     random_state=0
+# )
 
-abc.fit(X_sub, y_sub, sample_weight=sample_weights_sub)
+# abc.fit(X_sub, y_sub, sample_weight=sample_weights_sub)
 
-# evaluate on full datasets
-abc_train_pred = abc.predict(X_train_ada)
-abc_test_pred = abc.predict(X_test_ada)
+# # evaluate on full datasets
+# abc_train_pred = abc.predict(X_train_ada)
+# abc_test_pred = abc.predict(X_test_ada)
 
-evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
+# evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: Multinomial Naive Bayes")
@@ -1131,42 +1167,42 @@ evaluate_model("Ada Boost Classifier", y_test, abc_test_pred, abc_train_pred)
 # mnb_test_predict_label = mnb.predict(Xte_mnb)
 # evaluate_model("Multinomial Naive Bayes", y_test, mnb_test_predict_label, mnb_train_predict_label)
 
-# print("\n" + "="*80)
-# print("TRYING: Complement Naive Bayes")
-# print("="*80)
+print("\n" + "="*80)
+print("TRYING: Complement Naive Bayes")
+print("="*80)
 
-# # # 94.87 %%
+# # 94.87 %%
 
-# word_vec_cnb = TfidfVectorizer(ngram_range=(1,2), min_df=5, sublinear_tf=True)
-# char_vec_cnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
+word_vec_cnb = TfidfVectorizer(ngram_range=(1,2), min_df=5, sublinear_tf=True)
+char_vec_cnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
 
-# Xtr_w_cnb = (word_vec_cnb.fit_transform(X_train_text)).astype("float32")
-# Xte_w_cnb = (word_vec_cnb.transform(X_test_text)).astype("float32")
+Xtr_w_cnb = (word_vec_cnb.fit_transform(X_train_text)).astype("float32")
+Xte_w_cnb = (word_vec_cnb.transform(X_test_text)).astype("float32")
 
-# Xtr_c_cnb = (char_vec_cnb.fit_transform(X_train_text)).astype("float32")
-# Xte_c_cnb = (char_vec_cnb.transform(X_test_text)).astype("float32")
+Xtr_c_cnb = (char_vec_cnb.fit_transform(X_train_text)).astype("float32")
+Xte_c_cnb = (char_vec_cnb.transform(X_test_text)).astype("float32")
 
-# k_word = 50000         
-# k_char = 35000         
+k_word = 50000         
+k_char = 35000         
 
-# sel_w_cnb = SelectKBest(chi2, k=k_word)
-# sel_c_cnb = SelectKBest(chi2, k=k_char)
+sel_w_cnb = SelectKBest(chi2, k=k_word)
+sel_c_cnb = SelectKBest(chi2, k=k_char)
 
-# Xtr_ws_cnb = sel_w_cnb.fit_transform(Xtr_w_cnb, y_train)
-# Xte_ws_cnb = sel_w_cnb.transform(Xte_w_cnb)
+Xtr_ws_cnb = sel_w_cnb.fit_transform(Xtr_w_cnb, y_train)
+Xte_ws_cnb = sel_w_cnb.transform(Xte_w_cnb)
 
-# Xtr_cs_cnb = sel_c_cnb.fit_transform(Xtr_c_cnb, y_train)
-# Xte_cs_cnb = sel_c_cnb.transform(Xte_c_cnb)
+Xtr_cs_cnb = sel_c_cnb.fit_transform(Xtr_c_cnb, y_train)
+Xte_cs_cnb = sel_c_cnb.transform(Xte_c_cnb)
 
-# Xtr_cnb = hstack([Xtr_ws_cnb, Xtr_cs_cnb])
-# Xte_cnb = hstack([Xte_ws_cnb, Xte_cs_cnb])
+Xtr_cnb = hstack([Xtr_ws_cnb, Xtr_cs_cnb])
+Xte_cnb = hstack([Xte_ws_cnb, Xte_cs_cnb])
 
-# cnb = ComplementNB(alpha=1e-8)
-# sw = compute_sample_weight(class_weight={"Necessary": 1.8, "Preferences": 1.4, "Statistics": 1.3, "Marketing": 1.0}, y=y_train)
-# cnb.fit(Xtr_cnb, y_train, sample_weight=sw)
-# cnb_train_pred = cnb.predict(Xtr_cnb)
-# cnb_test_pred = cnb.predict(Xte_cnb)
-# evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
+cnb = ComplementNB(alpha=1e-8)
+sw = compute_sample_weight(class_weight={"Necessary": 1.8, "Preferences": 1.4, "Statistics": 1.3, "Marketing": 1.0}, y=y_train)
+cnb.fit(Xtr_cnb, y_train, sample_weight=sw)
+cnb_train_pred = cnb.predict(Xtr_cnb)
+cnb_test_pred = cnb.predict(Xte_cnb)
+evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: Bernoulli Naive Bayes")
