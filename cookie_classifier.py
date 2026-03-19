@@ -1,4 +1,4 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
@@ -419,10 +419,10 @@ class CookieClassifier:
             self.selector_chars = None
 
     def _prepare_model(self):
-        if self.model_name == "MLP":
+        if self.model_name == "MLP": # 98.76%
             self.model = MLPClassifier(
                     hidden_layer_sizes=(200,),   
-                    activation='relu', # tanh has 98,70%
+                    activation='relu', # tanh has 98.70%
                     solver='adam',              
                     alpha=1e-3,                 
                     batch_size=8192,
@@ -436,7 +436,7 @@ class CookieClassifier:
                     n_iter_no_change=10,
                     random_state=42,
             )
-        elif self.model_name == "KNN":
+        elif self.model_name == "KNN": # 95.18%
             def KNN_custom_weights(distances):
                 return (1 / (distances + 1e-5) ** 2.2) * np.exp(-distances)
             
@@ -447,14 +447,14 @@ class CookieClassifier:
                 algorithm='auto',
                 n_jobs=-1
             )
-        elif self.model_name == "LogisticRegression":
+        elif self.model_name == "LogisticRegression": # 93.72%
             self.model = LogisticRegression(
                 max_iter=10000,
                 solver='saga',
                 random_state=0,
                 class_weight='balanced'
             )
-        elif self.model_name == "LogisticRegression_MW":
+        elif self.model_name == "LogisticRegression_MW": # 95.52%
             self.model = LogisticRegression(
                     l1_ratio=0.5,
                     C=1.0,
@@ -462,7 +462,7 @@ class CookieClassifier:
                     solver='saga',  
                     random_state=0
             )
-        elif self.model_name == "SGD":
+        elif self.model_name == "SGD": # 97.62%
             self.model = SGDClassifier(
                 loss='hinge', 
                 penalty='l2',
@@ -476,7 +476,7 @@ class CookieClassifier:
                 n_iter_no_change=50,
                 class_weight={"Necessary": 3.0, "Preferences": 2.5, "Statistics": 1.0, "Marketing": 1.0}
             )
-        elif self.model_name == "PAC":
+        elif self.model_name == "PAC": # 97.35%
             self.model = SGDClassifier(
                 loss='hinge', 
                 penalty='l2',
@@ -491,7 +491,7 @@ class CookieClassifier:
                 n_iter_no_change=50,
                 class_weight={"Necessary": 3.0, "Preferences": 2.5, "Statistics": 1.0, "Marketing": 1.0}
             )
-        elif self.model_name == "LinearSVC":
+        elif self.model_name == "LinearSVC": # 97.22%
             self.model = LinearSVC(
                 C=1.3,
                 class_weight='balanced',
@@ -499,7 +499,7 @@ class CookieClassifier:
                 random_state=0,
                 penalty='l1'
             )
-        elif self.model_name == "LinearSVC_MW":
+        elif self.model_name == "LinearSVC_MW": # 97.37%
             self.model = LinearSVC(
                 C=0.6,
                 max_iter=20000,
@@ -507,7 +507,7 @@ class CookieClassifier:
                 penalty='l1',
                 class_weight={'Necessary': 3.5, 'Preferences': 2.7, 'Statistics': 1.7, 'Marketing': 1.0},
             )
-        elif self.model_name == "RandomForest":
+        elif self.model_name == "RandomForest": # 98.18%
             self.model = RandomForestClassifier(
                 n_estimators=300,
                 random_state=0,
@@ -516,15 +516,15 @@ class CookieClassifier:
                 max_depth=None,
                 max_features='sqrt'   
             )
-        elif self.model_name == "DecisionTreeClassifier":
-            self.model = DecisionTreeClassifier(
+        elif self.model_name == "DecisionTreeClassifier": # 98.17%
+            self.model = DecisionTreeClassifier( 
                 criterion='gini',
                 max_depth=None,
                 max_features=None,
                 class_weight={"Necessary": 3.5, "Preferences": 2.7, "Statistics": 1.7, "Marketing": 1.0},
                 random_state=0
             )
-        elif self.model_name == "AdaBoost":
+        elif self.model_name == "AdaBoost": # 94.23%
             ada_base_tree = DecisionTreeClassifier(
                 max_depth=3,
                 min_samples_leaf=5,
@@ -537,7 +537,7 @@ class CookieClassifier:
                 learning_rate=0.4,
                 random_state=0
             )
-        elif self.model_name == "MultinomialNB":
+        elif self.model_name == "MultinomialNB": # 94.27%
             # Word-level TF-IDF
             self.word_vec_mnb = TfidfVectorizer(ngram_range=(1,2), min_df=4, sublinear_tf=True, dtype=np.float32)
             Xtr_w = self.word_vec_mnb.fit_transform(self.X_train_text)
@@ -570,8 +570,361 @@ class CookieClassifier:
                 class_weight={"Necessary": 1.4, "Preferences": 1.3, "Statistics": 1.3, "Marketing": 1.1},
                 y=self.y_train
             )
+
+        elif self.model_name == "ComplementNB": # 94.87%
+            self.word_vec_cnb = TfidfVectorizer(ngram_range=(1,2), min_df=5, sublinear_tf=True, dtype=np.float32)
+
+            Xtr_w = self.word_vec_cnb.fit_transform(self.X_train_text)
+            Xte_w = self.word_vec_cnb.transform(self.X_test_text)
+
+            self.char_vec_cnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True, dtype=np.float32)
+
+            Xtr_c = self.char_vec_cnb.fit_transform(self.X_train_text)
+            Xte_c = self.char_vec_cnb.transform(self.X_test_text)
+
+            k_word = 50000
+            k_char = 35000
+
+            self.sel_w_cnb = SelectKBest(chi2, k=k_word)
+            self.sel_c_cnb = SelectKBest(chi2, k=k_char)
+
+            Xtr_w_sel = self.sel_w_cnb.fit_transform(Xtr_w, self.y_train)
+            Xte_w_sel = self.sel_w_cnb.transform(Xte_w)
+
+            Xtr_c_sel = self.sel_c_cnb.fit_transform(Xtr_c, self.y_train)
+            Xte_c_sel = self.sel_c_cnb.transform(Xte_c)
+
+            # Combine features
+            self.X_train_vec = hstack([Xtr_w_sel, Xtr_c_sel])
+            self.X_test_vec = hstack([Xte_w_sel, Xte_c_sel])
+
+            self.model = ComplementNB(alpha=1e-8)
+
+            self.sample_weights = compute_sample_weight(
+                class_weight={"Necessary": 1.8, "Preferences": 1.4, "Statistics": 1.3, "Marketing": 1.0},
+                y=self.y_train
+            )
+
+        elif self.model_name == "BernoulliNB": # 93,75%
+            # Word-level TF-IDFs
+            self.word_vec_bnb = TfidfVectorizer(ngram_range=(1,2), min_df=10, sublinear_tf=True, dtype=np.float32)
+
+            Xtr = self.word_vec_bnb.fit_transform(self.X_train_text)
+            Xte = self.word_vec_bnb.transform(self.X_test_text)
+
+            # Convert to binary features
+            Xtr_bin = (Xtr > 0).astype(np.int8)
+            Xte_bin = (Xte > 0).astype(np.int8)
+
+            # Feature selection
+            k = 22000
+            self.sel_bnb = SelectKBest(chi2, k=k)
+
+            Xtr_sel = self.sel_bnb.fit_transform(Xtr_bin, self.y_train)
+            Xte_sel = self.sel_bnb.transform(Xte_bin)
+
+            self.X_train_vec = Xtr_sel
+            self.X_test_vec = Xte_sel
+
+            self.model = BernoulliNB(alpha=1e-3, binarize=None)
+
+        elif self.model_name == "StackingClassifier": # 95.76
+
+            base_estimators = [
+                ("lr", LogisticRegression(
+                    max_iter=3000,
+                    solver="saga",
+                    class_weight="balanced",
+                    random_state=0
+                )),
+                ("sgd", SGDClassifier(
+                    loss="log_loss",
+                    alpha=1e-5,
+                    class_weight="balanced",
+                    max_iter=2000,
+                    tol=1e-3,
+                    n_jobs=-1,
+                    random_state=0
+                )),
+                ("cnb", ComplementNB(alpha=0.1))
+            ]
+
+            meta_model = LogisticRegression(
+                max_iter=2000,
+                solver="lbfgs",
+                class_weight="balanced",
+                random_state=0
+            )
+
+            self.model = StackingClassifier(
+                estimators=base_estimators,
+                final_estimator=meta_model,
+                cv=3,
+                n_jobs=-1,
+                passthrough=False
+            )
+
+        elif self.model_name == "VotingClassifier": # 96.40%
+
+            self.selector_voting = SelectKBest(chi2, k=10000)
+
+            Xtr = self.selector_voting.fit_transform(self.X_train_vec, self.y_train)
+            Xte = self.selector_voting.transform(self.X_test_vec)
+
+            self.X_train_vec = Xtr
+            self.X_test_vec = Xte
+
+            self.model = VotingClassifier(
+                estimators=[
+                    ("lr", LogisticRegression(
+                        max_iter=5000,
+                        solver="saga",
+                        class_weight="balanced",
+                        random_state=0
+                    )),
+                    ("sgd", SGDClassifier(
+                        loss="log_loss",
+                        alpha=1e-7,
+                        max_iter=100,
+                        early_stopping=True,
+                        validation_fraction=0.1,
+                        n_iter_no_change=5,
+                        class_weight={"Necessary": 3.0, "Preferences": 2.5, "Statistics": 1.0, "Marketing": 1.0},
+                        random_state=0
+                    )),
+                    ("cnb", ComplementNB(alpha=1e-8))
+                ],
+                voting="hard",
+                n_jobs=-1,
+                verbose=10
+            )
+
+        elif self.model_name == "LightGBM": # 98.47%
+
+            self.model = lgb.LGBMClassifier(
+                num_iterations=700,
+                num_leaves=120,
+                random_state=0,
+                n_jobs=-1,
+                force_col_wise=True
+            )
+
+        elif self.model_name == "XGBoost": # 97.52%
+
+            self.selector_xgb = SelectKBest(chi2, k=8000)
+
+            Xtr = self.selector_xgb.fit_transform(self.X_train_vec, self.y_train)
+            Xte = self.selector_xgb.transform(self.X_test_vec)
+
+            self.X_train_vec = Xtr
+            self.X_test_vec = Xte
+
+            self.xgb_label_encoder = LabelEncoder()
+
+            y_train_encoded = self.xgb_label_encoder.fit_transform(self.y_train)
+            self.y_test_encoded = self.xgb_label_encoder.transform(self.y_test)
+
+            self.X_train_xgb, self.X_val_xgb, self.y_train_xgb, self.y_val_xgb = train_test_split(
+                self.X_train_vec,
+                y_train_encoded,
+                test_size=0.1,
+                random_state=42
+            )
+
+            self.model = xgb.XGBClassifier(
+                objective='multi:softmax',
+                num_class=len(self.xgb_label_encoder.classes_),
+                n_estimators=300,
+                max_depth=10,
+                early_stopping_rounds=20,
+                tree_method='hist',
+                random_state=0,
+                n_jobs=-1,
+                eval_metric='mlogloss'
+            )
+
+        elif self.model_name == "CatBoost": # 97.63%
+
+            self.selector_cat = SelectKBest(chi2, k=8000)
+
+            Xtr = self.selector_cat.fit_transform(self.X_train_vec, self.y_train)
+            Xte = self.selector_cat.transform(self.X_test_vec)
+
+            self.X_train_vec = Xtr
+            self.X_test_vec = Xte
+
+            self.X_train_cat, self.X_val_cat, self.y_train_cat, self.y_val_cat = train_test_split(
+                self.X_train_vec,
+                self.y_train,
+                test_size=0.1,
+                random_state=42
+            )
+
+            class_weights = {
+                'Necessary': 3.0,
+                'Preferences': 2.5,
+                'Statistics': 1.3,
+                'Marketing': 1.0
+            }
+
+            self.model = catboost.CatBoostClassifier(
+                iterations=2000,
+                learning_rate=0.7,
+                depth=6,
+                loss_function='MultiClass',
+                eval_metric='Accuracy',
+                class_weights=class_weights,
+                random_seed=42,
+                od_type='IncToDec',
+                od_wait=20,
+                use_best_model=True,
+                task_type='CPU',
+                thread_count=-1,
+                verbose=50
+            )
+
+        elif self.model_name == "Perceptron": # 96.04%
+
+            self.model = Perceptron(
+                penalty=None,
+                alpha=1e-3,
+                l1_ratio=0.15,
+                fit_intercept=True,
+                max_iter=200,
+                shuffle=True,
+                verbose=0,
+                n_jobs=-1,
+                random_state=0,
+                early_stopping=True,
+                validation_fraction=0.1,
+                n_iter_no_change=20,
+                class_weight='balanced'
+            )
+
+        elif self.model_name == "Perceptron_MW": # 96.28%
+
+            class_weight_map = {
+                'Necessary': 3.0,
+                'Preferences': 2.5,
+                'Statistics': 1.3,
+                'Marketing': 1.0
+            }
+
+            self.model = Perceptron(
+                penalty=None,
+                alpha=1e-3,
+                l1_ratio=0.15,
+                fit_intercept=True,
+                max_iter=100,
+                shuffle=True,
+                verbose=0,
+                n_jobs=-1,
+                random_state=0,
+                early_stopping=True,
+                validation_fraction=0.1,
+                n_iter_no_change=10,
+                class_weight=class_weight_map
+            )
+
+        elif self.model_name == "NearestCentroid": # 78.14%
+
+            self.selector_nc = SelectKBest(chi2, k=1500)
+
+            Xtr = self.selector_nc.fit_transform(self.X_train_vec, self.y_train)
+            Xte = self.selector_nc.transform(self.X_test_vec)
+
+            self.X_train_vec = Xtr
+            self.X_test_vec = Xte
+
+            self.model = NearestCentroid(
+                metric='euclidean',
+                shrink_threshold=0.001,
+                priors='uniform'
+            )
+
+        elif self.model_name == "RidgeClassifier": # 95.24%
+
+            self.model = RidgeClassifier(
+                alpha=0.1,
+                class_weight='balanced',
+                solver='auto',
+                random_state=0
+            )
+
+        elif self.model_name == "RidgeClassifier_MW": # 96.41%
+
+            class_weight_map = {
+                'Necessary': 3.0,
+                'Preferences': 1.8,
+                'Statistics': 1.5,
+                'Marketing': 1.0
+            }
+
+            self.model = RidgeClassifier(
+                alpha=0.1,
+                class_weight=class_weight_map,
+                solver='auto',
+                random_state=0
+            )
+
+        elif self.model_name == "RidgeClassifierCV": # 95.00%
+
+            self.selector_rccv = SelectKBest(chi2, k=20000)
+
+            Xtr = self.selector_rccv.fit_transform(self.X_train_vec, self.y_train)
+            Xte = self.selector_rccv.transform(self.X_test_vec)
+
+            self.X_train_vec = Xtr
+            self.X_test_vec = Xte
+
+            cv_splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+            self.model = RidgeClassifierCV(
+                alphas=(0.1, 1.0, 10.0),
+                scoring='top_k_accuracy',
+                cv=cv_splitter,
+                class_weight='balanced'
+            )
+
+        elif self.model_name == "RidgeClassifierCV_MW": # 96.26%
+
+            class_weight_map = {
+                'Necessary': 3.0,
+                'Preferences': 1.5,
+                'Statistics': 1.3,
+                'Marketing': 1.0
+            }
+
+            self.selector_rccv_mw = SelectKBest(chi2, k=15000)
+
+            Xtr = self.selector_rccv_mw.fit_transform(self.X_train_vec, self.y_train)
+            Xte = self.selector_rccv_mw.transform(self.X_test_vec)
+
+            self.X_train_vec = Xtr
+            self.X_test_vec = Xte
+
+            cv_splitter = StratifiedKFold(n_splits=7, shuffle=True, random_state=42)
+
+            self.model = RidgeClassifierCV(
+                alphas=(0.1, 1.0, 10.0),
+                scoring='top_k_accuracy',
+                cv=cv_splitter,
+                class_weight=class_weight_map
+            )
+
+        elif self.model_name == "CalibratedClassifierCV": # 97.26%
+
+            cv_splitter = StratifiedKFold(n_splits=7, shuffle=True, random_state=42)
+
+            self.model = CalibratedClassifierCV(
+                method='isotonic',
+                cv=cv_splitter,
+                n_jobs=-1
+            )
+
         else:
             raise ValueError(f"Model {self.model_name} not implemented yet")
+        
                 
     def _reduce_for_knn(self):
         self.svd = TruncatedSVD(n_components=128, random_state=42)
@@ -604,18 +957,64 @@ class CookieClassifier:
         self.sample_weights_sub = self.y_train_sub.map(self.class_weights_ada).values
 
     def train(self):
-        if self.model_name == "KNN":
+        if self.model_name == "MLP": # 98.76%
+            self.model.fit(self.X_train_vec, self.y_train)
+        if self.model_name == "KNN": # 95.18%
             self._reduce_for_knn()
             self.model.fit(self.X_train_vec, self.y_train)
-        elif self.model_name == "LogisticRegression_MW":
+        elif self.model_name == "LogisticRegression": # 93.72%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "LogisticRegression_MW": # 95.52%
             class_weight_map = {'Necessary': 5.0, 'Preferences': 2.0, 'Statistics': 1.5, 'Marketing': 1.0}      
             sample_weight = self.y_train.map(class_weight_map).fillna(1.0)
             self.model.fit(self.X_train_vec, self.y_train, sample_weight=sample_weight)
-        elif self.model_name == "AdaBoost":
+        elif self.model_name == "SGD": # 97.62%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "PAC": # 97.35%
+            self.model.fit(self.X_train_vec, self.y_train) 
+        elif self.model_name == "LinearSVC": # 97.22%
+            self.model.fit(self.X_train_vec, self.y_train) 
+        elif self.model_name == "LinearSVC_MW": # 97.37%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "RandomForest": # 98.18%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "DecisionTreeClassifier": # 98.17%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "AdaBoost": # 94.23%
             self._reduce_for_adaboost()
             self.model.fit(self.X_train_sub, self.y_train_sub, sample_weight=self.sample_weights_sub)
-        elif self.model_name == "MultinomialNB":
+        elif self.model_name == "MultinomialNB": # 94.27%
             self.model.fit(self.X_train_vec, self.y_train, sample_weight=self.sample_weights)
+        elif self.model_name == "ComplementNB": # 94.87%
+            self.model.fit(self.X_train_vec, self.y_train, sample_weight=self.sample_weights)
+        elif self.model_name == "BernoulliNB": # 93.75%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "StackingClassifier": # 95.76%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "VotingClassifier": # 96.40%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "LightGBM": # 98.47%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "XGBoost": # 97.52%
+            self.model.fit(self.X_train_xgb, self.y_train_xgb, eval_set=[(self.X_val_xgb, self.y_val_xgb)], verbose=30)
+        elif self.model_name == "CatBoost": # 97.63%
+            self.model.fit(self.X_train_cat, self.y_train_cat, eval_set=[(self.X_val_cat, self.y_val_cat)])
+        elif self.model_name == "Perceptron": # 96.04%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "Perceptron_MW": # 96.28%
+            self.model.fit(self.X_train_vec, self.y_train) 
+        elif self.model_name == "NearestCentroid": # 78.14%
+            self.model.fit(self.X_train_vec, self.y_train) 
+        elif self.model_name == "RidgeClassifier": # 95.24%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "RidgeClassifier_MW": # 96.41%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "RidgeClassifierCV": # 95.00%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "RidgeClassifierCV_MW": # 96.26%
+            self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "CalibratedClassifierCV": # 97.26%
+            self.model.fit(self.X_train_vec, self.y_train)
         else:
             self.model.fit(self.X_train_vec, self.y_train)
 
@@ -626,8 +1025,8 @@ class CookieClassifier:
         test_acc = accuracy_score(self.y_test, test_pred)
         train_f1 = f1_score(self.y_train, train_pred, average='macro', zero_division=0)
         test_f1 = f1_score(self.y_test, test_pred, average='macro', zero_division=0)
-        print(f"{self.model_name} - Training Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}")
-        print(f"{self.model_name} - Training F1: {train_f1:.4f}, Test F1: {test_f1:.4f}")
+        print(f"{self.model_name} - Training Accuracy: {train_acc*100:.2f}%, Test Accuracy: {test_acc*100:.2f}%")
+        print(f"{self.model_name} - Training F1: {train_f1*100:.2f}%, Test F1: {test_f1*100:.2f}%")
 
         # Confusion matrix (saved as PDF + PNG, same style as evaluate_model())
         classes = list(getattr(self.model, 'classes_', sorted(pd.unique(pd.concat([self.y_train, self.y_test])))))
@@ -693,11 +1092,45 @@ class CookieClassifier:
 data_loader = CookieDataLoader()
 CookieDataLoader.data_statistics(data_loader.df)
 
-# classifier = CookieClassifier(
-#     loader=data_loader,
-#     model_name="MultinomialNB"
-# )
+models_to_run = [
+    "MLP",                    # 98.76%
+    "KNN",                    # 95.18%
+    "LogisticRegression",     # 93.72%
+    "LogisticRegression_MW",  # 95.52%
+    "SGD",                    # 97.62%
+    "PAC",                    # 97.35%
+    "LinearSVC",              # 97.22%
+    "LinearSVC_MW",           # 97.37%
+    "RandomForest",           # 98.18%
+    "DecisionTreeClassifier", # 98.17%
+    "AdaBoost",               # 94.23%
+    "MultinomialNB",          # 94.27%
+    "ComplementNB",           # 94.87%
+    "BernoulliNB",            # 93.75%
+    "StackingClassifier",     # 95.76%
+    "VotingClassifier",       # 96.40%
+    "LightGBM",               # 98.47%
+    "XGBoost",                # 97.52%
+    "CatBoost",               # 97.63%
+    "Perceptron",             # 96.04%
+    "Perceptron_MW",          # 96.28%
+    "NearestCentroid",        # 78.14%
+    "RidgeClassifier",        # 95.24%
+    "RidgeClassifier_MW",     # 96.41%
+    "RidgeClassifierCV",      # 95.00%
+    "RidgeClassifierCV_MW",   # 96.26%
+    "CalibratedClassifierCV"  # 97.26%
+]
 
+for model_name in models_to_run:
+    print("\n" + "=" * 80)
+    print(f"TRYING: {model_name}")
+    print("=" * 80)
+
+    classifier = CookieClassifier(
+        loader=data_loader,
+        model_name=model_name
+    )
 rows = []
 with open('classified_cookies.csv', 'r', encoding='utf-8', errors='replace') as f:
     for line in f:
@@ -902,7 +1335,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Logistic Regression with manual weights")
 # print("="*80)
 
-# # 95,52%
+# # 95.52%
 
 # class_weight_map = {
 #     'Necessary': 5.0,      
@@ -928,7 +1361,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Logistic Regression with class_weight='balanced'")
 # print("="*80)
 
-# # 93,72 %
+# # 93.72%
 
 # lg_balanced = LogisticRegression(
 #     max_iter=10000,
@@ -945,7 +1378,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: SGD Classifier")
 # print("="*80)
 
-# # 97,62%
+# # 97.62%
 
 # sgdc = SGDClassifier(
 #     loss='hinge', 
@@ -970,7 +1403,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Passive Aggressive Classifier")
 # print("="*80)
 
-# # 97,35%
+# # 97.35%
 
 # pac = SGDClassifier(
 #     loss='hinge', 
@@ -996,7 +1429,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Linear SVC")
 # print("="*80)
 
-# # 97,22%
+# # 97.22%
 
 # svc = LinearSVC(
 #     C=1.3,
@@ -1017,7 +1450,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Linear SVC With Manual Weights")
 # print("="*80)
 
-# # 97,37%
+# # 97.37%
 
 # svc = LinearSVC(
 #     C=0.6,
@@ -1044,7 +1477,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: RandomForest")
 # print("="*80)
 
-# # 98,18%
+# # 98.18%
 
 # rf = RandomForestClassifier(
 #     n_estimators=300,
@@ -1064,7 +1497,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Decision Tree Classifier")
 # print("="*80)
 
-# # 98,17%
+# # 98.17%
 
 # dtc = DecisionTreeClassifier(
 #     criterion='gini',
@@ -1079,10 +1512,12 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # dtc_test_pred = dtc.predict(X_test_encoded)
 # evaluate_model("Decision Tree Classifier", y_test, dtc_test_pred, dtc_train_pred)
 
-# # NEED FURTHER TUNING (current 94.23%)
+
 # print("\n" + "="*80)
 # print("TRYING: Ada Boost Classifier")
 # print("="*80)
+
+# # 94.23%
 
 # svd_ada = TruncatedSVD(n_components=300, random_state=42)
 
@@ -1134,7 +1569,7 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # print("TRYING: Multinomial Naive Bayes")
 # print("="*80)
 
-# # # 94.27%
+# # 94.27%
 
 # word_vec_mnb = TfidfVectorizer(ngram_range=(1,2), min_df=4, sublinear_tf=True)
 # char_vec_mnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
@@ -1167,42 +1602,42 @@ def evaluate_model(model_name, y_true, y_pred, train_pred, include_f1=True, f1_a
 # mnb_test_predict_label = mnb.predict(Xte_mnb)
 # evaluate_model("Multinomial Naive Bayes", y_test, mnb_test_predict_label, mnb_train_predict_label)
 
-print("\n" + "="*80)
-print("TRYING: Complement Naive Bayes")
-print("="*80)
+# print("\n" + "="*80)
+# print("TRYING: Complement Naive Bayes")
+# print("="*80)
 
-# # 94.87 %%
+# # # 94.87 %%
 
-word_vec_cnb = TfidfVectorizer(ngram_range=(1,2), min_df=5, sublinear_tf=True)
-char_vec_cnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
+# word_vec_cnb = TfidfVectorizer(ngram_range=(1,2), min_df=5, sublinear_tf=True)
+# char_vec_cnb = TfidfVectorizer(analyzer="char_wb", ngram_range=(3,6), min_df=9, sublinear_tf=True)
 
-Xtr_w_cnb = (word_vec_cnb.fit_transform(X_train_text)).astype("float32")
-Xte_w_cnb = (word_vec_cnb.transform(X_test_text)).astype("float32")
+# Xtr_w_cnb = (word_vec_cnb.fit_transform(X_train_text)).astype("float32")
+# Xte_w_cnb = (word_vec_cnb.transform(X_test_text)).astype("float32")
 
-Xtr_c_cnb = (char_vec_cnb.fit_transform(X_train_text)).astype("float32")
-Xte_c_cnb = (char_vec_cnb.transform(X_test_text)).astype("float32")
+# Xtr_c_cnb = (char_vec_cnb.fit_transform(X_train_text)).astype("float32")
+# Xte_c_cnb = (char_vec_cnb.transform(X_test_text)).astype("float32")
 
-k_word = 50000         
-k_char = 35000         
+# k_word = 50000         
+# k_char = 35000         
 
-sel_w_cnb = SelectKBest(chi2, k=k_word)
-sel_c_cnb = SelectKBest(chi2, k=k_char)
+# sel_w_cnb = SelectKBest(chi2, k=k_word)
+# sel_c_cnb = SelectKBest(chi2, k=k_char)
 
-Xtr_ws_cnb = sel_w_cnb.fit_transform(Xtr_w_cnb, y_train)
-Xte_ws_cnb = sel_w_cnb.transform(Xte_w_cnb)
+# Xtr_ws_cnb = sel_w_cnb.fit_transform(Xtr_w_cnb, y_train)
+# Xte_ws_cnb = sel_w_cnb.transform(Xte_w_cnb)
 
-Xtr_cs_cnb = sel_c_cnb.fit_transform(Xtr_c_cnb, y_train)
-Xte_cs_cnb = sel_c_cnb.transform(Xte_c_cnb)
+# Xtr_cs_cnb = sel_c_cnb.fit_transform(Xtr_c_cnb, y_train)
+# Xte_cs_cnb = sel_c_cnb.transform(Xte_c_cnb)
 
-Xtr_cnb = hstack([Xtr_ws_cnb, Xtr_cs_cnb])
-Xte_cnb = hstack([Xte_ws_cnb, Xte_cs_cnb])
+# Xtr_cnb = hstack([Xtr_ws_cnb, Xtr_cs_cnb])
+# Xte_cnb = hstack([Xte_ws_cnb, Xte_cs_cnb])
 
-cnb = ComplementNB(alpha=1e-8)
-sw = compute_sample_weight(class_weight={"Necessary": 1.8, "Preferences": 1.4, "Statistics": 1.3, "Marketing": 1.0}, y=y_train)
-cnb.fit(Xtr_cnb, y_train, sample_weight=sw)
-cnb_train_pred = cnb.predict(Xtr_cnb)
-cnb_test_pred = cnb.predict(Xte_cnb)
-evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
+# cnb = ComplementNB(alpha=1e-8)
+# sw = compute_sample_weight(class_weight={"Necessary": 1.8, "Preferences": 1.4, "Statistics": 1.3, "Marketing": 1.0}, y=y_train)
+# cnb.fit(Xtr_cnb, y_train, sample_weight=sw)
+# cnb_train_pred = cnb.predict(Xtr_cnb)
+# cnb_test_pred = cnb.predict(Xte_cnb)
+# evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 
 # print("\n" + "="*80)
 # print("TRYING: Bernoulli Naive Bayes")
@@ -1272,7 +1707,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Voting Classifier")
 # print("="*80)
 
-# # 96,40%
+# # 96.40%
 
 # voting_clf = VotingClassifier(
 #     estimators=[
@@ -1312,7 +1747,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: MLP Classifier")
 # print("="*80)
 
-# # 98,76%
+# # 98.76%
 
 # mlpc = MLPClassifier(
 #     hidden_layer_sizes=(200,),   
@@ -1348,7 +1783,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("\n" + "="*80)
 # print("TRYING: LightGBM Classifier")
 # print("="*80)
-# # 98,47%
+# # 98.47%
 # lgbm = lgb.LGBMClassifier(
 #     num_iterations=700,
 #     num_leaves=120,
@@ -1368,7 +1803,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: XGBoost Classifier")
 # print("="*80)
 
-# # 97,52%
+# # 97.52%
 
 # selector_xgb = SelectKBest(chi2, k=8000)
 # X_train_small_xgb = selector_xgb.fit_transform(X_train_encoded, y_train)
@@ -1418,7 +1853,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: CatBoost Classifier")
 # print("="*80)
 
-# # 97,63%
+# # 97.63%
 
 # selector_cat = SelectKBest(chi2, k=8000)
 # X_train_small_cat = selector_cat.fit_transform(X_train_encoded, y_train)
@@ -1462,7 +1897,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Perceptron")
 # print("="*80)
 
-# # 96,04%
+# # 96.04%
 
 # perc = Perceptron(
 #     penalty=None,
@@ -1489,7 +1924,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Perceptron With Manual Weights")
 # print("="*80)
 
-# # 96,28%
+# # 96.28%
 
 # class_weight_map = {
 #     'Necessary': 3.0,      
@@ -1523,7 +1958,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Nearest Centroid")
 # print("="*80)
 
-# # 78,14%
+# # 78.14%
 
 # selector_bnb = SelectKBest(chi2, k=1500) 
 # X_train_small_nc = selector_bnb.fit_transform(X_train_encoded, y_train)
@@ -1541,7 +1976,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Ridge Classifier")
 # print("="*80)
 
-# # 95,24%
+# # 95.24%
 
 # rc = RidgeClassifier(
 #     alpha=0.1,
@@ -1559,7 +1994,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Ridge Classifier With Manual Weights")
 # print("="*80)
 
-# # 96,41% 
+# # 96.41% 
 
 # class_weight_map = {
 #     'Necessary': 3.0,      
@@ -1584,7 +2019,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Ridge Classifier CV")
 # print("="*80)
 
-# # 95,00%
+# # 95.00%
 
 # selector_rccv = SelectKBest(chi2, k=20000) 
 # X_train_small_rccv = selector_rccv.fit_transform(X_train_encoded, y_train)
@@ -1608,7 +2043,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Ridge Classifier CV With Manual Weights")
 # print("="*80)
 
-# # 96,26%
+# # 96.26%
 
 # class_weight_map = {
 #     'Necessary': 3.0,      
@@ -1639,7 +2074,7 @@ evaluate_model("Complement Naive Bayes", y_test, cnb_test_pred, cnb_train_pred)
 # print("TRYING: Calibrated Classifier CV")
 # print("="*80)
 
-# # 97,26%
+# # 97.26%
 
 # cv_splitter = StratifiedKFold(n_splits=7, shuffle=True, random_state=42)
 

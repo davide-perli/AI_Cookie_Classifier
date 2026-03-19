@@ -1,0 +1,13 @@
+{
+    "model_name": "ComplementNB",
+    "training_accuracy": "95.22%",
+    "test_accuracy": "94.87%",
+    "training_f1_macro": "92.17",
+    "test_f1_macro": "91.45",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "33068/35392 = 93.43%",
+        "Necessary": "7268/7406 = 98.14%",
+        "Preferences": "2181/2403 = 90.76%",
+        "Statistics": "40740/42561 = 95.72%"
+    }
+}
