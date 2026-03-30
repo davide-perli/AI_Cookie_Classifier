@@ -1,0 +1,13 @@
+{
+    "model_name": "NearestCentroid",
+    "training_accuracy": "90.35%",
+    "test_accuracy": "90.17%",
+    "training_f1_macro": "81.17",
+    "test_f1_macro": "81.00",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "31389/35392 = 88.69%",
+        "Necessary": "5527/7406 = 74.63%",
+        "Preferences": "1224/2403 = 50.94%",
+        "Statistics": "40998/42561 = 96.33%"
+    }
+}

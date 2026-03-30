@@ -1,0 +1,13 @@
+{
+    "model_name": "MLP",
+    "training_accuracy": "99.93%",
+    "test_accuracy": "99.10%",
+    "training_f1_macro": "99.85",
+    "test_f1_macro": "98.09",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "35114/35392 = 99.21%",
+        "Necessary": "7260/7406 = 98.03%",
+        "Preferences": "2309/2403 = 96.09%",
+        "Statistics": "42286/42561 = 99.35%"
+    }
+}

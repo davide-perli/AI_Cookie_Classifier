@@ -1,0 +1,13 @@
+{
+    "model_name": "XGBoost",
+    "training_accuracy": "97.74%",
+    "test_accuracy": "97.52%",
+    "training_f1_macro": "96.42",
+    "test_f1_macro": "96.08",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "34223/35392 = 96.70%",
+        "Necessary": "7083/7406 = 95.64%",
+        "Preferences": "2147/2403 = 89.35%",
+        "Statistics": "42135/42561 = 99.00%"
+    }
+}

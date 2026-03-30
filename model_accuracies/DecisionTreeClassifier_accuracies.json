@@ -1,0 +1,13 @@
+{
+    "model_name": "DecisionTreeClassifier",
+    "training_accuracy": "99.77%",
+    "test_accuracy": "98.17%",
+    "training_f1_macro": "99.42",
+    "test_f1_macro": "96.08",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "34808/35392 = 98.35%",
+        "Necessary": "7151/7406 = 96.56%",
+        "Preferences": "2188/2403 = 91.05%",
+        "Statistics": "42011/42561 = 98.71%"
+    }
+}

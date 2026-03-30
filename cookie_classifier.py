@@ -1,11 +1,11 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression, SGDClassifier, Perceptron, RidgeClassifier, RidgeClassifierCV
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, StackingClassifier, VotingClassifier
 from sklearn.utils.class_weight import compute_sample_weight
@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import Normalizer, normalize
 from scipy.sparse import hstack
 
 CONFUSION_MATRICES_PDF_DIR = Path('confusion_matrices_pdf')
@@ -68,6 +68,20 @@ class CookieDataLoader:
                 df['Provider'].apply(clean_domain) + ' ' +
                 df['Site_Found'].apply(clean_domain) + ' ' +
                 df['Duration'].fillna(''))
+    
+    def build_tfidf(self, max_features=80000):
+        self.X_train_text = self.combine_features(self.X_train_raw)
+        self.X_test_text = self.combine_features(self.X_test_raw)
+
+        self.tfidf = TfidfVectorizer(
+            max_features=max_features,
+            ngram_range=(1,2),
+            min_df=10,
+            sublinear_tf=True
+        )
+
+        self.X_train_vec = self.tfidf.fit_transform(self.X_train_text).astype(np.float32)
+        self.X_test_vec = self.tfidf.transform(self.X_test_text).astype(np.float32)
     
     @staticmethod
     def data_statistics(df):
@@ -335,17 +349,19 @@ class CookieDataLoader:
 class CookieClassifier:
     def __init__(self, loader, model_name="MLP", use_custom_weights=False, max_features=80000, k_best=None, max_features_chars=False, k_best_chars=None):
         self.loader = loader
+        # Train/Test data vectorized to reuse
+        self.X_train_vec = loader.X_train_vec
+        self.X_test_vec = loader.X_test_vec
         self.model_name = model_name
         self.use_custom_weights = use_custom_weights
         self.max_features = None if max_features is True else max_features
         self.k_best = k_best
+        self.mlp_label_encoder = None
         # Handle char max_features: True -> None (all char features), False -? skip
         self.max_features_chars = None if max_features_chars is True else max_features_chars
         self.k_best_chars = k_best_chars
         # Prepare text and labels
         self._prepare_text()
-        # Vectorize
-        self._vectorize()
         # Select top-k features if requested
         self._select_top_features()
         # Vectorize chars if needed
@@ -365,16 +381,6 @@ class CookieClassifier:
         self.y_train = self.loader.y_train
         self.y_test = self.loader.y_test
 
-    def _vectorize(self):
-        self.tfidf = TfidfVectorizer(
-            max_features=self.max_features,
-            ngram_range=(1,2),
-            min_df=10,
-            sublinear_tf=True,
-            dtype=np.float32
-        )
-        self.X_train_vec = self.tfidf.fit_transform(self.X_train_text)
-        self.X_test_vec = self.tfidf.transform(self.X_test_text)
 
     def _select_top_features(self):
         if self.k_best is not None and self.k_best < self.X_train_vec.shape[1]:
@@ -391,11 +397,13 @@ class CookieClassifier:
                 analyzer='char_wb',
                 ngram_range=(3,6),
                 max_features=self.max_features_chars,
-                sublinear_tf=True,
-                dtype=np.float32
+                sublinear_tf=True
             )
             self.X_train_chars = self.tfidf_chars.fit_transform(self.X_train_text)
             self.X_test_chars = self.tfidf_chars.transform(self.X_test_text)
+
+            self.X_train_chars = self.X_train_chars.astype("float32")
+            self.X_test_chars = self.X_test_chars.astype("float32")
 
             # Apply top-k if requested
             if self.k_best_chars is not None:
@@ -419,18 +427,18 @@ class CookieClassifier:
             self.selector_chars = None
 
     def _prepare_model(self):
-        if self.model_name == "MLP": # 98.76%
+        if self.model_name == "MLP": # 98.81%
             self.model = MLPClassifier(
-                    hidden_layer_sizes=(200,),   
+                    hidden_layer_sizes=(250, 64),   
                     activation='relu', # tanh has 98.70%
                     solver='adam',              
                     alpha=1e-3,                 
                     batch_size=8192,
                     learning_rate_init=0.01,
                     max_iter=200,
-                    verbose=False,
+                    verbose=True,
                     early_stopping=True,
-                    validation_fraction=0.1,
+                    validation_fraction=0.01,
                     beta_1=0.9,
                     epsilon=1e-8,    
                     n_iter_no_change=10,
@@ -449,14 +457,13 @@ class CookieClassifier:
             )
         elif self.model_name == "LogisticRegression": # 93.72%
             self.model = LogisticRegression(
-                max_iter=10000,
-                solver='saga',
-                random_state=0,
-                class_weight='balanced'
+                    max_iter=10000, 
+                    solver='saga', 
+                    random_state=0, 
+                    class_weight='balanced'
             )
         elif self.model_name == "LogisticRegression_MW": # 95.52%
             self.model = LogisticRegression(
-                    l1_ratio=0.5,
                     C=1.0,
                     max_iter=10000,
                     solver='saga',  
@@ -500,7 +507,7 @@ class CookieClassifier:
                 penalty='l1'
             )
         elif self.model_name == "LinearSVC_MW": # 97.37%
-            self.model = LinearSVC(
+            self.model = LinearSVC(  
                 C=0.6,
                 max_iter=20000,
                 random_state=0,
@@ -526,14 +533,14 @@ class CookieClassifier:
             )
         elif self.model_name == "AdaBoost": # 94.23%
             ada_base_tree = DecisionTreeClassifier(
-                max_depth=3,
-                min_samples_leaf=5,
+                criterion='gini',
+                max_depth=15,
                 random_state=0
             )
 
             self.model = AdaBoostClassifier(
                 estimator=ada_base_tree,
-                n_estimators=180,
+                n_estimators=200,
                 learning_rate=0.4,
                 random_state=0
             )
@@ -668,8 +675,8 @@ class CookieClassifier:
 
             self.selector_voting = SelectKBest(chi2, k=10000)
 
-            Xtr = self.selector_voting.fit_transform(self.X_train_vec, self.y_train)
-            Xte = self.selector_voting.transform(self.X_test_vec)
+            Xtr = self.selector_voting.fit_transform(self.loader.X_train_vec, self.y_train)
+            Xte = self.selector_voting.transform(self.loader.X_test_vec)
 
             self.X_train_vec = Xtr
             self.X_test_vec = Xte
@@ -689,7 +696,7 @@ class CookieClassifier:
                         early_stopping=True,
                         validation_fraction=0.1,
                         n_iter_no_change=5,
-                        class_weight={"Necessary": 3.0, "Preferences": 2.5, "Statistics": 1.0, "Marketing": 1.0},
+                        class_weight={0: 3.0, 1: 2.5, 2: 1.0, 3: 1.0},
                         random_state=0
                     )),
                     ("cnb", ComplementNB(alpha=1e-8))
@@ -826,21 +833,22 @@ class CookieClassifier:
                 class_weight=class_weight_map
             )
 
-        elif self.model_name == "NearestCentroid": # 78.14%
-
-            self.selector_nc = SelectKBest(chi2, k=1500)
-
-            Xtr = self.selector_nc.fit_transform(self.X_train_vec, self.y_train)
+        elif self.model_name == "NearestCentroid": # 90.17% 
+            self.selector_nc = SelectKBest(chi2, k=3000) 
+            Xtr = self.selector_nc.fit_transform(self.X_train_vec, self.y_train) 
             Xte = self.selector_nc.transform(self.X_test_vec)
 
-            self.X_train_vec = Xtr
-            self.X_test_vec = Xte
+            Xtr = Xtr.astype(np.float32).toarray()
+            Xte = Xte.astype(np.float32).toarray()
 
-            self.model = NearestCentroid(
-                metric='euclidean',
-                shrink_threshold=0.001,
-                priors='uniform'
-            )
+            self.X_train_vec = Xtr 
+            self.X_test_vec = Xte 
+
+            self.model = NearestCentroid( 
+                    metric='euclidean', 
+                    shrink_threshold=0.4,
+                    priors='empirical' 
+                ) 
 
         elif self.model_name == "RidgeClassifier": # 95.24%
 
@@ -938,16 +946,17 @@ class CookieClassifier:
 
     def _reduce_for_adaboost(self):
         
-        self.svd_ada = TruncatedSVD(n_components=256, random_state=42)
-        self.X_train_vec_ada = self.svd_ada.fit_transform(self.X_train_vec)
-        self.X_test_vec_ada = self.svd_ada.transform(self.X_test_vec)
+        self.svd_ada = TruncatedSVD(n_components=300, random_state=42)
 
-        self.class_weights_ada = {'Necessary': 3.0, 'Preferences': 5.0, 'Statistics': 1.0, 'Marketing': 1.0}
+        self.X_train_vec = self.svd_ada.fit_transform(self.X_train_vec)
+        self.X_test_vec = self.svd_ada.transform(self.X_test_vec)
 
-        subset_size = 200000 
+        self.class_weights_ada = {'Necessary': 2.0, 'Preferences': 1.5, 'Statistics': 1.0, 'Marketing': 1.0}
+
+        subset_size = 300000 
 
         self.X_train_sub, self.y_train_sub = resample(
-            self.X_train_vec_ada,
+            self.X_train_vec,
             self.y_train,
             n_samples=subset_size,
             stratify=self.y_train,
@@ -957,9 +966,11 @@ class CookieClassifier:
         self.sample_weights_sub = self.y_train_sub.map(self.class_weights_ada).values
 
     def train(self):
-        if self.model_name == "MLP": # 98.76%
-            self.model.fit(self.X_train_vec, self.y_train)
-        if self.model_name == "KNN": # 95.18%
+        if self.model_name == "MLP": # 98.77%
+            self.mlp_label_encoder = LabelEncoder()
+            self.y_train_mlp = self.mlp_label_encoder.fit_transform(self.y_train)
+            self.model.fit(self.X_train_vec, self.y_train_mlp)
+        elif self.model_name == "KNN": # 95.18%
             self._reduce_for_knn()
             self.model.fit(self.X_train_vec, self.y_train)
         elif self.model_name == "LogisticRegression": # 93.72%
@@ -1019,8 +1030,27 @@ class CookieClassifier:
             self.model.fit(self.X_train_vec, self.y_train)
 
     def evaluate(self):
-        train_pred = self.model.predict(self.X_train_vec)
-        test_pred = self.model.predict(self.X_test_vec)
+        if self.model_name == "MLP":
+            train_pred_int = self.model.predict(self.X_train_vec)
+            test_pred_int = self.model.predict(self.X_test_vec)
+            train_pred = self.mlp_label_encoder.inverse_transform(train_pred_int)
+            test_pred = self.mlp_label_encoder.inverse_transform(test_pred_int)
+        elif self.model_name == "XGBoost":
+            train_pred_int = self.model.predict(self.X_train_vec)
+            test_pred_int = self.model.predict(self.X_test_vec)
+
+            train_pred = self.xgb_label_encoder.inverse_transform(train_pred_int)
+            test_pred = self.xgb_label_encoder.inverse_transform(test_pred_int)
+        elif self.model_name == "CatBoost":
+                train_pred = self.model.predict(self.X_train_vec)
+                test_pred = self.model.predict(self.X_test_vec)
+
+                # Fix: flatten
+                train_pred = np.array(train_pred).ravel()
+                test_pred = np.array(test_pred).ravel()
+        else:
+            train_pred = self.model.predict(self.X_train_vec)
+            test_pred = self.model.predict(self.X_test_vec)
         train_acc = accuracy_score(self.y_train, train_pred)
         test_acc = accuracy_score(self.y_test, test_pred)
         train_f1 = f1_score(self.y_train, train_pred, average='macro', zero_division=0)
@@ -1029,7 +1059,7 @@ class CookieClassifier:
         print(f"{self.model_name} - Training F1: {train_f1*100:.2f}%, Test F1: {test_f1*100:.2f}%")
 
         # Confusion matrix (saved as PDF + PNG, same style as evaluate_model())
-        classes = list(getattr(self.model, 'classes_', sorted(pd.unique(pd.concat([self.y_train, self.y_test])))))
+        classes = sorted(set(self.y_train) | set(self.y_test) | set(test_pred))
         conf_matrix = confusion_matrix(self.y_test, test_pred, labels=classes)
 
         print(f"\nConfusion Matrix ({self.model_name}):")
@@ -1090,36 +1120,53 @@ class CookieClassifier:
 
 
 data_loader = CookieDataLoader()
+data_loader.build_tfidf()
 CookieDataLoader.data_statistics(data_loader.df)
 
+# CookieClassifier(
+#     loader=data_loader,
+#     model_name="MLP",
+#     max_features=80000,
+#     k_best=None,
+#     max_features_chars=False,
+#     k_best_chars=None
+# )
+
+# CookieClassifier( # 99.15%
+#     loader=data_loader,
+#     model_name="MLP",
+#     max_features=80000,
+#     max_features_chars=20000,
+# )
+
 models_to_run = [
-    "MLP",                    # 98.76%
-    "KNN",                    # 95.18%
-    "LogisticRegression",     # 93.72%
-    "LogisticRegression_MW",  # 95.52%
-    "SGD",                    # 97.62%
-    "PAC",                    # 97.35%
-    "LinearSVC",              # 97.22%
-    "LinearSVC_MW",           # 97.37%
-    "RandomForest",           # 98.18%
-    "DecisionTreeClassifier", # 98.17%
-    "AdaBoost",               # 94.23%
-    "MultinomialNB",          # 94.27%
-    "ComplementNB",           # 94.87%
-    "BernoulliNB",            # 93.75%
-    "StackingClassifier",     # 95.76%
-    "VotingClassifier",       # 96.40%
-    "LightGBM",               # 98.47%
-    "XGBoost",                # 97.52%
-    "CatBoost",               # 97.63%
-    "Perceptron",             # 96.04%
-    "Perceptron_MW",          # 96.28%
+    # "MLP",                    # 98.81%
+    # "KNN",                    # 95.18%
+    # "LogisticRegression",     # 93.72%
+    # "LogisticRegression_MW",  # 95.52%  94.14%
+    # "SGD",                    # 97.62%  97.55%
+    # "PAC",                    # 97.35%  97.31%
+    # "LinearSVC",              # 97.22%  
+    # "LinearSVC_MW",           # 97.37%
+    # "RandomForest",           # 98.18%
+    # "DecisionTreeClassifier", # 98.17%
+    # "AdaBoost",               # 94.26%
+    # "MultinomialNB",          # 94.27%
+    # "ComplementNB",           # 94.87%
+    # "BernoulliNB",            # 93.75%
+    # "StackingClassifier",     # 95.76% 95.38%
+    # "VotingClassifier",       # 96.40% 95.20%
+    # "LightGBM",               # 98.48%
+    # "XGBoost",                # 97.52%
+    # "CatBoost",               # 97.73%
+    # "Perceptron",             # 96.04% 95.94%
+    # "Perceptron_MW",          # 96.28% 96.05%
     "NearestCentroid",        # 78.14%
-    "RidgeClassifier",        # 95.24%
-    "RidgeClassifier_MW",     # 96.41%
-    "RidgeClassifierCV",      # 95.00%
-    "RidgeClassifierCV_MW",   # 96.26%
-    "CalibratedClassifierCV"  # 97.26%
+    # "RidgeClassifier",        # 95.25%
+    # "RidgeClassifier_MW",     # 96.41%
+    # "RidgeClassifierCV",      # 95.00%
+    # "RidgeClassifierCV_MW",   # 96.26%
+    # "CalibratedClassifierCV"  # 97.26%
 ]
 
 for model_name in models_to_run:
@@ -1131,6 +1178,10 @@ for model_name in models_to_run:
         loader=data_loader,
         model_name=model_name
     )
+
+    del classifier
+    gc.collect()
+
 rows = []
 with open('classified_cookies.csv', 'r', encoding='utf-8', errors='replace') as f:
     for line in f:

@@ -1,0 +1,13 @@
+{
+    "model_name": "LogisticRegression_MW",
+    "training_accuracy": "94.79%",
+    "test_accuracy": "94.14%",
+    "training_f1_macro": "91.45",
+    "test_f1_macro": "90.04",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "33087/35392 = 93.49%",
+        "Necessary": "5357/7406 = 72.33%",
+        "Preferences": "1892/2403 = 78.73%",
+        "Statistics": "42279/42561 = 99.34%"
+    }
+}

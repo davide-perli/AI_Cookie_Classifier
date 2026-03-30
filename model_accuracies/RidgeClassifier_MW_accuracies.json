@@ -1,0 +1,13 @@
+{
+    "model_name": "RidgeClassifier_MW",
+    "training_accuracy": "96.99%",
+    "test_accuracy": "96.41%",
+    "training_f1_macro": "95.04",
+    "test_f1_macro": "94.04",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "33809/35392 = 95.53%",
+        "Necessary": "7107/7406 = 95.96%",
+        "Preferences": "2116/2403 = 88.06%",
+        "Statistics": "41576/42561 = 97.69%"
+    }
+}

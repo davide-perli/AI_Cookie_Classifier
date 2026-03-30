@@ -1,0 +1,13 @@
+{
+    "model_name": "VotingClassifier",
+    "training_accuracy": "95.81%",
+    "test_accuracy": "95.60%",
+    "training_f1_macro": "92.93",
+    "test_f1_macro": "92.65",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "33970/35392 = 95.98%",
+        "Necessary": "7247/7406 = 97.85%",
+        "Preferences": "2150/2403 = 89.47%",
+        "Statistics": "40536/42561 = 95.24%"
+    }
+}

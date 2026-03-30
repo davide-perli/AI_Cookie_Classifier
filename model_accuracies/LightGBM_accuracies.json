@@ -1,0 +1,13 @@
+{
+    "model_name": "LightGBM",
+    "training_accuracy": "99.60%",
+    "test_accuracy": "98.48%",
+    "training_f1_macro": "99.10",
+    "test_f1_macro": "96.51",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "34962/35392 = 98.79%",
+        "Necessary": "7175/7406 = 96.88%",
+        "Preferences": "2147/2403 = 89.35%",
+        "Statistics": "42141/42561 = 99.01%"
+    }
+}

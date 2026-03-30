@@ -1,0 +1,13 @@
+{
+    "model_name": "PAC",
+    "training_accuracy": "98.49%",
+    "test_accuracy": "97.31%",
+    "training_f1_macro": "97.67",
+    "test_f1_macro": "95.51",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "34502/35392 = 97.49%",
+        "Necessary": "7125/7406 = 96.21%",
+        "Preferences": "2184/2403 = 90.89%",
+        "Statistics": "41591/42561 = 97.72%"
+    }
+}
