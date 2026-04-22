@@ -1,4 +1,4 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, onnx, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier, Perceptron, 
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, StackingClassifier, VotingClassifier
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline, FeatureUnion
 from sklearn.utils import resample
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
@@ -21,6 +21,10 @@ from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer, normalize
 from scipy.sparse import hstack
+
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx import convert_sklearn
 
 CONFUSION_MATRICES_PDF_DIR = Path('confusion_matrices_pdf')
 CONFUSION_MATRICES_PNG_DIR = Path('confusion_matrices_png')
@@ -52,7 +56,8 @@ class CookieDataLoader:
         df = df[df['Category'].isin(valid_categories)]
 
         self.df = df
-        train_df, test_df = train_test_split(df, test_size=self.test_size, random_state=self.random_state)
+        # train_df, test_df = train_test_split(df, test_size=self.test_size, random_state=self.random_state)
+        train_df, test_df = train_test_split(df, test_size=self.test_size, random_state=self.random_state, stratify=df["Category"],)
         self.X_train_raw = train_df[['Cookie_Name','Provider','Site_Found','Duration']]
         self.y_train = train_df['Category']
         self.X_test_raw = test_df[['Cookie_Name','Provider','Site_Found','Duration']].copy()
@@ -1132,12 +1137,52 @@ CookieDataLoader.data_statistics(data_loader.df)
 #     k_best_chars=None
 # )
 
-# CookieClassifier( # 99.15%
-#     loader=data_loader,
-#     model_name="MLP",
-#     max_features=80000,
-#     max_features_chars=20000,
-# )
+classifier = CookieClassifier( # 99.15%
+    loader=data_loader,
+    model_name="MLP",
+    max_features=80000,
+    max_features_chars=20000,
+)
+
+D = classifier.X_train_vec.shape[1]  # combined word+char feature size
+
+onnx_model = convert_sklearn(
+    classifier.model,
+    initial_types=[("X", FloatTensorType([None, D]))],
+    options={id(classifier.model): {"zipmap": False}},
+)
+onnx.save_model(onnx_model, "mlp_only.onnx")
+
+with open("classes.json", "w", encoding="utf-8") as f:
+    json.dump(classifier.mlp_label_encoder.classes_.tolist(), f, indent=2)
+
+def _to_jsonable(obj):
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, dict):
+        return {str(k): _to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_jsonable(v) for v in obj]
+    return obj
+
+def dump(vec):
+    return {
+        "vocabulary": _to_jsonable(vec.vocabulary_),
+        "idf": _to_jsonable(vec.idf_),
+        "ngram_range": list(vec.ngram_range),
+        "analyzer": vec.analyzer if isinstance(vec.analyzer, str) else str(vec.analyzer),  # "word" or "char_wb"
+        "lowercase": bool(vec.lowercase),
+        "sublinear_tf": bool(vec.sublinear_tf),
+        "norm": vec.norm,
+    }
+
+with open("tfidf_params.json", "w", encoding="utf-8") as f:
+    json.dump({"word": dump(data_loader.tfidf), "char": dump(classifier.tfidf_chars)}, f, indent=2)
+
 
 models_to_run = [
     # "MLP",                    # 98.81%
@@ -1161,7 +1206,7 @@ models_to_run = [
     # "CatBoost",               # 97.73%
     # "Perceptron",             # 96.04% 95.94%
     # "Perceptron_MW",          # 96.28% 96.05%
-    "NearestCentroid",        # 78.14%
+    # "NearestCentroid",        # 78.14%
     # "RidgeClassifier",        # 95.25%
     # "RidgeClassifier_MW",     # 96.41%
     # "RidgeClassifierCV",      # 95.00%
@@ -1205,7 +1250,7 @@ print(f"Category distribution:\n{df['Category'].value_counts()}\n")
 
 # Split data: 90% training, 10% testing
 train_df, test_df = train_test_split(df, test_size=0.1, random_state=42)
-
+# train_df, test_df = train_test_split(df, test_size=0.1, random_state=42, stratify=df["Category"])
 X_train = train_df[['Cookie_Name', 'Provider', 'Site_Found', 'Duration']]
 y_train = train_df['Category']  # Labels are the Category column
 # mask = np.random.rand(len(X_train)) < 0.5
