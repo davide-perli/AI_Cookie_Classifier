@@ -1,4 +1,4 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, onnx, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, onnx, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc, joblib
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
@@ -24,7 +24,6 @@ from scipy.sparse import hstack
 
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx import convert_sklearn
 
 CONFUSION_MATRICES_PDF_DIR = Path('confusion_matrices_pdf')
 CONFUSION_MATRICES_PNG_DIR = Path('confusion_matrices_png')
@@ -69,7 +68,7 @@ class CookieDataLoader:
             if pd.isna(text):
                 return ''
             return text.replace('.', ' ').replace('-', ' ')
-        return (df['Cookie_Name'].fillna('') + ' ' +
+        return (df['Cookie_Name'].fillna('')  + ' ' +
                 df['Provider'].apply(clean_domain) + ' ' +
                 df['Site_Found'].apply(clean_domain) + ' ' +
                 df['Duration'].fillna(''))
@@ -410,9 +409,7 @@ class CookieClassifier:
             self.X_train_chars = self.X_train_chars.astype("float32")
             self.X_test_chars = self.X_test_chars.astype("float32")
 
-            # Apply top-k if requested
-            if self.k_best_chars is not None:
-                self._select_top_features_chars()
+           
 
             # Combine with word-level TF-IDF
             self.X_train_vec = hstack([self.X_train_vec, self.X_train_chars])
@@ -1144,45 +1141,23 @@ classifier = CookieClassifier( # 99.15%
     max_features_chars=20000,
 )
 
-D = classifier.X_train_vec.shape[1]  # combined word+char feature size
+joblib.dump({
+    "tfidf_word": data_loader.tfidf,
+    "tfidf_char": classifier.tfidf_chars,
+    "selector_word": getattr(classifier, "selector", None),
+    "selector_char": getattr(classifier, "selector_chars", None),
+}, "preprocessing.joblib")
+
+n_features = classifier.X_train_vec.shape[1]
 
 onnx_model = convert_sklearn(
     classifier.model,
-    initial_types=[("X", FloatTensorType([None, D]))],
+    initial_types=[("input", FloatTensorType([None, n_features]))],
     options={id(classifier.model): {"zipmap": False}},
 )
-onnx.save_model(onnx_model, "mlp_only.onnx")
 
-with open("classes.json", "w", encoding="utf-8") as f:
-    json.dump(classifier.mlp_label_encoder.classes_.tolist(), f, indent=2)
-
-def _to_jsonable(obj):
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, dict):
-        return {str(k): _to_jsonable(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [_to_jsonable(v) for v in obj]
-    return obj
-
-def dump(vec):
-    return {
-        "vocabulary": _to_jsonable(vec.vocabulary_),
-        "idf": _to_jsonable(vec.idf_),
-        "ngram_range": list(vec.ngram_range),
-        "analyzer": vec.analyzer if isinstance(vec.analyzer, str) else str(vec.analyzer),  # "word" or "char_wb"
-        "lowercase": bool(vec.lowercase),
-        "sublinear_tf": bool(vec.sublinear_tf),
-        "norm": vec.norm,
-    }
-
-with open("tfidf_params.json", "w", encoding="utf-8") as f:
-    json.dump({"word": dump(data_loader.tfidf), "char": dump(classifier.tfidf_chars)}, f, indent=2)
-
+with open("cookie_classifier.onnx", "wb") as f:
+    f.write(onnx_model.SerializeToString())
 
 models_to_run = [
     # "MLP",                    # 98.81%
