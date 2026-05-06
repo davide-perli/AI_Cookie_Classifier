@@ -68,10 +68,50 @@ class CookieDataLoader:
             if pd.isna(text):
                 return ''
             return text.replace('.', ' ').replace('-', ' ')
+        
+        def parse_duration(text):
+            if pd.isna(text) or text.strip() == '':
+                return ''
+            
+            text = text.lower().strip()
+            
+            # session case
+            if 'session' in text:
+                return 'session'
+            
+            if 'never' in text:
+                return 'long'
+            
+            # extract numbers
+            years = months = days = minutes = 0
+            
+            year_match = re.search(r'(\d+)\s*year', text)
+            month_match = re.search(r'(\d+)\s*month', text)
+            day_match = re.search(r'(\d+)\s*day', text)
+            minute_match = re.search(r'(\d+)\s*minute', text)
+            
+            if year_match:
+                years = int(year_match.group(1))
+            if month_match:
+                months = int(month_match.group(1))
+            if day_match:
+                days = int(day_match.group(1))
+            if minute_match:
+                minutes = int(minute_match.group(1))
+            
+            total_days = years * 365 + months * 30 + days + minutes / (60 * 24)
+            
+            if total_days > 1:
+                return 'long'
+            elif total_days <= 1:
+                return 'short'
+            else:
+                return ''
+            
         return (df['Cookie_Name'].fillna('')  + ' ' +
                 df['Provider'].apply(clean_domain) + ' ' +
                 df['Site_Found'].apply(clean_domain) + ' ' +
-                df['Duration'].fillna(''))
+                df['Duration'].apply(parse_duration))
     
     def build_tfidf(self, max_features=80000):
         self.X_train_text = self.combine_features(self.X_train_raw)
