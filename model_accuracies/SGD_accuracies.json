@@ -1,13 +1,13 @@
 {
     "model_name": "SGD",
-    "training_accuracy": "98.56%",
-    "test_accuracy": "97.55%",
-    "training_f1_macro": "97.72",
-    "test_f1_macro": "95.75",
+    "training_accuracy": "98.30%",
+    "test_accuracy": "96.79%",
+    "training_f1_macro": "97.16",
+    "test_f1_macro": "94.46",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34514/35392 = 97.52%",
-        "Necessary": "7187/7406 = 97.04%",
-        "Preferences": "2191/2403 = 91.18%",
-        "Statistics": "41720/42561 = 98.02%"
+        "Marketing": "34206/35341 = 96.79%",
+        "Necessary": "7089/7360 = 96.32%",
+        "Preferences": "2145/2378 = 90.20%",
+        "Statistics": "41508/42683 = 97.25%"
     }
 }

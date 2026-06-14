@@ -1,13 +1,13 @@
 {
     "model_name": "MultinomialNB",
-    "training_accuracy": "94.65%",
-    "test_accuracy": "94.27%",
-    "training_f1_macro": "91.28",
-    "test_f1_macro": "90.31",
+    "training_accuracy": "94.70%",
+    "test_accuracy": "94.32%",
+    "training_f1_macro": "91.45",
+    "test_f1_macro": "90.46",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "32393/35392 = 91.53%",
-        "Necessary": "7187/7406 = 97.04%",
-        "Preferences": "2136/2403 = 88.89%",
-        "Statistics": "41013/42561 = 96.36%"
+        "Marketing": "32403/35341 = 91.69%",
+        "Necessary": "7118/7360 = 96.71%",
+        "Preferences": "2128/2378 = 89.49%",
+        "Statistics": "41126/42683 = 96.35%"
     }
 }

@@ -1,13 +1,13 @@
 {
     "model_name": "LinearSVC",
-    "training_accuracy": "98.12%",
-    "test_accuracy": "97.22%",
-    "training_f1_macro": "96.86",
-    "test_f1_macro": "94.95",
+    "training_accuracy": "97.56%",
+    "test_accuracy": "96.37%",
+    "training_f1_macro": "95.95",
+    "test_f1_macro": "93.43",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34341/35392 = 97.03%",
-        "Necessary": "7232/7406 = 97.65%",
-        "Preferences": "2232/2403 = 92.88%",
-        "Statistics": "41516/42561 = 97.54%"
+        "Marketing": "34028/35341 = 96.28%",
+        "Necessary": "7167/7360 = 97.38%",
+        "Preferences": "2186/2378 = 91.93%",
+        "Statistics": "41197/42683 = 96.52%"
     }
 }

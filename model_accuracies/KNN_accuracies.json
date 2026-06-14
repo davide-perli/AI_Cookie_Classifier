@@ -1,13 +1,13 @@
 {
     "model_name": "KNN",
-    "training_accuracy": "99.78%",
-    "test_accuracy": "95.18%",
-    "training_f1_macro": "99.46",
-    "test_f1_macro": "89.62",
+    "training_accuracy": "99.70%",
+    "test_accuracy": "94.52%",
+    "training_f1_macro": "99.25",
+    "test_f1_macro": "87.56",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34210/35392 = 96.66%",
-        "Necessary": "6557/7406 = 88.54%",
-        "Preferences": "1789/2403 = 74.45%",
-        "Statistics": "40976/42561 = 96.28%"
+        "Marketing": "34013/35341 = 96.24%",
+        "Necessary": "6315/7360 = 85.80%",
+        "Preferences": "1661/2378 = 69.85%",
+        "Statistics": "40962/42683 = 95.97%"
     }
 }

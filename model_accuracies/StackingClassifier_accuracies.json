@@ -1,13 +1,13 @@
 {
     "model_name": "StackingClassifier",
-    "training_accuracy": "95.80%",
-    "test_accuracy": "95.38%",
-    "training_f1_macro": "91.23",
-    "test_f1_macro": "90.47",
+    "training_accuracy": "96.28%",
+    "test_accuracy": "95.74%",
+    "training_f1_macro": "92.88",
+    "test_f1_macro": "91.71",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34128/35392 = 96.43%",
-        "Necessary": "7173/7406 = 96.85%",
-        "Preferences": "2254/2403 = 93.80%",
-        "Statistics": "40151/42561 = 94.34%"
+        "Marketing": "33978/35341 = 96.14%",
+        "Necessary": "7075/7360 = 96.13%",
+        "Preferences": "2220/2378 = 93.36%",
+        "Statistics": "40746/42683 = 95.46%"
     }
 }

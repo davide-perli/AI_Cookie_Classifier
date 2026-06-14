@@ -1,4 +1,4 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, onnx, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc, joblib
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc, joblib
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
@@ -22,7 +22,7 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer, normalize
 from scipy.sparse import hstack
 
-from skl2onnx import convert_sklearn
+from skl2onnx import convert_sklearn 
 from skl2onnx.common.data_types import FloatTensorType
 
 CONFUSION_MATRICES_PDF_DIR = Path('confusion_matrices_pdf')
@@ -1201,32 +1201,32 @@ with open("cookie_classifier.onnx", "wb") as f:
 
 models_to_run = [
     # "MLP",                    # 98.81%
-    # "KNN",                    # 95.18%
-    # "LogisticRegression",     # 93.72%
-    # "LogisticRegression_MW",  # 95.52%  94.14%
-    # "SGD",                    # 97.62%  97.55%
-    # "PAC",                    # 97.35%  97.31%
-    # "LinearSVC",              # 97.22%  
-    # "LinearSVC_MW",           # 97.37%
-    # "RandomForest",           # 98.18%
-    # "DecisionTreeClassifier", # 98.17%
-    # "AdaBoost",               # 94.26%
-    # "MultinomialNB",          # 94.27%
-    # "ComplementNB",           # 94.87%
-    # "BernoulliNB",            # 93.75%
-    # "StackingClassifier",     # 95.76% 95.38%
-    # "VotingClassifier",       # 96.40% 95.20%
-    # "LightGBM",               # 98.48%
-    # "XGBoost",                # 97.52%
-    # "CatBoost",               # 97.73%
-    # "Perceptron",             # 96.04% 95.94%
-    # "Perceptron_MW",          # 96.28% 96.05%
-    # "NearestCentroid",        # 78.14%
-    # "RidgeClassifier",        # 95.25%
-    # "RidgeClassifier_MW",     # 96.41%
-    # "RidgeClassifierCV",      # 95.00%
-    # "RidgeClassifierCV_MW",   # 96.26%
-    # "CalibratedClassifierCV"  # 97.26%
+    "KNN",                    # 95.18%
+    "LogisticRegression",     # 93.72%
+    "LogisticRegression_MW",  # 95.52%  94.14%
+    "SGD",                    # 97.62%  97.55%
+    "PAC",                    # 97.35%  97.31%
+    "LinearSVC",              # 97.22%  
+    "LinearSVC_MW",           # 97.37%
+    "RandomForest",           # 98.18%
+    "DecisionTreeClassifier", # 98.17%
+    "AdaBoost",               # 94.26%
+    "MultinomialNB",          # 94.27%
+    "ComplementNB",           # 94.87%
+    "BernoulliNB",            # 93.75%
+    "StackingClassifier",     # 95.76% 95.38%
+    "VotingClassifier",       # 96.40% 95.20%
+    "LightGBM",               # 98.48%
+    "XGBoost",                # 97.52%
+    "CatBoost",               # 97.73%
+    "Perceptron",             # 96.04% 95.94%
+    "Perceptron_MW",          # 96.28% 96.05%
+    "NearestCentroid",        # 78.14%
+    "RidgeClassifier",        # 95.25%
+    "RidgeClassifier_MW",     # 96.41%
+    "RidgeClassifierCV",      # 95.00%
+    "RidgeClassifierCV_MW",   # 96.26%
+    "CalibratedClassifierCV"  # 97.26%
 ]
 
 for model_name in models_to_run:

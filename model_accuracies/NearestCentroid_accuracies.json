@@ -1,13 +1,13 @@
 {
     "model_name": "NearestCentroid",
-    "training_accuracy": "90.35%",
-    "test_accuracy": "90.17%",
-    "training_f1_macro": "81.17",
-    "test_f1_macro": "81.00",
+    "training_accuracy": "89.65%",
+    "test_accuracy": "89.50%",
+    "training_f1_macro": "80.13",
+    "test_f1_macro": "79.61",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "31389/35392 = 88.69%",
-        "Necessary": "5527/7406 = 74.63%",
-        "Preferences": "1224/2403 = 50.94%",
-        "Statistics": "40998/42561 = 96.33%"
+        "Marketing": "30730/35341 = 86.95%",
+        "Necessary": "5327/7360 = 72.38%",
+        "Preferences": "1091/2378 = 45.88%",
+        "Statistics": "41396/42683 = 96.98%"
     }
 }
