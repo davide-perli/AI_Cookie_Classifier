@@ -315,142 +315,142 @@ The confusion matrix is also saved as a PDF file for each model run.
 
 You can find the generated confusion matrices here:
 
-- [KNN](confusion_matrix_KNN.pdf)
-- [Logistic Regression](confusion_matrix_Logistic_Regression_Balanced.pdf)
-- [Logistic Regression With Manual Weights](confusion_matrix_Logistic_Regression_Manual_Weights.pdf)
-- [SGD Classifier](confusion_matrix_SGD_Classifier.pdf)
-- [Passive Aggressive Classifier](confusion_matrix_Passive_Aggressive_Classifier.pdf)
-- [LinearSVC](confusion_matrix_LinearSVC.pdf)
-- [LinearSVC Manual Weights](confusion_matrix_LinearSVC_Manual_Weights.pdf)
-- [Random Forest Classifier](confusion_matrix_RandomForest_CLassifier.pdf)
-- [Decision Tree Classifier With Manual Weights](confusion_matrix_Decision_Tree_Classifier.pdf)
-- [Ada Boost Classifier](confusion_matrix_Ada_Boost_Classifier.pdf)
-- [Multinomial Naive Bayes](confusion_matrix_Multinomial_Naive_Bayes.pdf)
-- [Complement Naive Bayes](confusion_matrix_Complement_Naive_Bayes.pdf)
-- [Bernoulli Naive Bayes](confusion_matrix_Bernoulli_Naive_Bayes.pdf)
-- [MLP (Multi-layer Perceptron) Classifier](confusion_matrix_MLP_Classifier.pdf)
-- [LightGBM Classifier](confusion_matrix_LightGBM_Classifier.pdf)
-- [XGBoost Classifier](confusion_matrix_XGBoost_Classifier.pdf)
-- [CatBoost Classifier](confusion_matrix_CatBoost_Classifier.pdf)
-- [Nearest Centroid](confusion_matrix_Nearest_Centroind.pdf)
-- [Perceptron](confusion_matrix_Perceptron.pdf)
-- [Perceptron With Manual Weights](confusion_matrix_Perceptron_With_Manual_Weights.pdf)
-- [Ridge CLassifier](confusion_matrix_Ridge_CLassifier.pdf)
-- [Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.pdf)
-- [Ridge Classifier CV](confusion_matrix_Ridge_Clasifier_CV.pdf)
-- [Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Clasifier_CV_With_Manual_Weights.pdf)
-- [Stacking Classifier](confusion_matrix_Stacking_Classifier.pdf)
-- [Voting Classifier](confusion_matrix_Voting_Classifier.pdf)
-- [Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.pdf)
+- [KNN](confusion_matrices_pdf/confusion_matrix_KNN.pdf)
+- [Logistic Regression](confusion_matrices_pdf/confusion_matrix_LogisticRegression.pdf)
+- [Logistic Regression With Manual Weights](confusion_matrices_pdf/confusion_matrix_LogisticRegression_MW.pdf)
+- [SGD Classifier](confusion_matrices_pdf/confusion_matrix_SGD.pdf)
+- [Passive Aggressive Classifier](confusion_matrices_pdf/confusion_matrix_PAC.pdf)
+- [LinearSVC](confusion_matrices_pdf/confusion_matrix_LinearSVC.pdf)
+- [LinearSVC Manual Weights](confusion_matrices_pdf/confusion_matrix_LinearSVC_MW.pdf)
+- [Random Forest Classifier](confusion_matrices_pdf/confusion_matrix_RandomForest.pdf)
+- [Decision Tree Classifier With Manual Weights](confusion_matrices_pdf/confusion_matrix_DecisionTreeClassifier.pdf)
+- [Ada Boost Classifier](confusion_matrices_pdf/confusion_matrix_Ada_Boost_Classifier.pdf)
+- [Multinomial Naive Bayes](confusion_matrices_pdf/confusion_matrix_MultinomialNB.pdf)
+- [Complement Naive Bayes](confusion_matrices_pdf/confusion_matrix_ComplementNB.pdf)
+- [Bernoulli Naive Bayes](confusion_matrices_pdf/confusion_matrix_BernoulliNB.pdf)
+- [MLP (Multi-layer Perceptron) Classifier](confusion_matrices_pdf/confusion_matrix_MLP.pdf)
+- [LightGBM Classifier](confusion_matrices_pdf/confusion_matrix_LightGBM.pdf)
+- [XGBoost Classifier](confusion_matrices_pdf/confusion_matrix_XGBoost.pdf)
+- [CatBoost Classifier](confusion_matrices_pdf/confusion_matrix_CatBoost.pdf)
+- [Nearest Centroid](confusion_matrices_pdf/confusion_matrix_NearestCentroid.pdf)
+- [Perceptron](confusion_matrices_pdf/confusion_matrix_Perceptron.pdf)
+- [Perceptron With Manual Weights](confusion_matrices_pdf/confusion_matrix_Perceptron_MW.pdf)
+- [Ridge CLassifier](confusion_matrices_pdf/confusion_matrix_RidgeClassifier.pdf)
+- [Ridge CLassifier With Manual Weights](confusion_matrices_pdf/confusion_matrix_RidgeClassifier_MW.pdf)
+- [Ridge Classifier CV](confusion_matrices_pdf/confusion_matrix_RidgeClassifierCV.pdf)
+- [Ridge Classifier CV With Manual Weights](confusion_matrices_pdf/confusion_matrix_RidgeClassifierCV_MW.pdf)
+- [Stacking Classifier](confusion_matrices_pdf/confusion_matrix_StackingClassifier.pdf)
+- [Voting Classifier](confusion_matrices_pdf/confusion_matrix_VotingClassifier.pdf)
+- [Calibrated Classifier CV](confusion_matrices_pdf/confusion_matrix_CalibratedClassifierCV.pdf)
 
 ### Confusion matrices (preview images)
 
 #### KNN
 
-![KNN](confusion_matrix_KNN.png)
+![KNN](confusion_matrices_png/confusion_matrix_KNN.png)
 
 #### Logistic Regression
 
-![Logistic Regression](confusion_matrix_Logistic_Regression_Balanced.png)
+![Logistic Regression](confusion_matrices_png/confusion_matrix_LogisticRegression.png)
 
 #### Logistic Regression (Manual Weights)
 
-![Logistic Regression (Manual Weights)](confusion_matrix_Logistic_Regression_Manual_Weights.png)
+![Logistic Regression (Manual Weights)](confusion_matrices_png/confusion_matrix_LogisticRegression_MW.png)
 
 #### SGD Classifier
 
-![SGD Classifier](confusion_matrix_SGD_Classifier.png)
+![SGD Classifier](confusion_matrices_png/confusion_matrix_SGD.png)
 
 #### Passive Aggressive Classifier
 
-![Passive Aggressive Classifier](confusion_matrix_Passive_Aggressive_Classifier.png)
+![Passive Aggressive Classifier](confusion_matrices_png/confusion_matrix_PAC.png)
 
 #### LinearSVC
 
-![LinearSVC](confusion_matrix_LinearSVC.png)
+![LinearSVC](confusion_matrices_png/confusion_matrix_LinearSVC.png)
 
 #### LinearSVC Manual Weights
 
-![LinearSVC Manual Weights](confusion_matrix_LinearSVC_Manual_Weights.png)
+![LinearSVC Manual Weights](confusion_matrices_png/confusion_matrix_LinearSVC_MW.png)
 
 #### Random Forest Classifier
 
-![Random Forest Classifier](confusion_matrix_RandomForest_Classifier.png))
+![Random Forest Classifier](confusion_matrices_png/confusion_matrix_RandomForest.png)
 
 #### Decision Tree Classifier (Manual Weights)
 
-![Decision Tree Classifier (Manual Weights)](confusion_matrix_Decision_Tree_Classifier.png)
+![Decision Tree Classifier (Manual Weights)](confusion_matrices_png/confusion_matrix_DecisionTreeClassifier.png)
 
 #### Ada Boost Classifier
 
-![Ada Boost Classifier](confusion_matrix_Ada_Boost_Classifier.png)
+![Ada Boost Classifier](confusion_matrices_png/confusion_matrix_Ada_Boost_Classifier.png)
 
 #### Multinomial Naive Bayes
 
-![Multinomial Naive Bayes](confusion_matrix_Multinomial_Naive_Bayes.png)
+![Multinomial Naive Bayes](confusion_matrices_png/confusion_matrix_MultinomialNB.png)
 
 #### Complement Naive Bayes
 
-![Complement Naive Bayes](confusion_matrix_Complement_Naive_Bayes.png)
+![Complement Naive Bayes](confusion_matrices_png/confusion_matrix_ComplementNB.png)
 
 #### Bernoulli Naive Bayes
 
-![Bernoulli Naive Bayes](confusion_matrix_Bernoulli_Naive_Bayes.png)
+![Bernoulli Naive Bayes](confusion_matrices_png/confusion_matrix_BernoulliNB.png)
 
 #### MLP (Multi-layer Perceptron) Classifier
 
-![MLP (Multi-layer Perceptron) Classifier](confusion_matrix_MLP_Classifier.png)
+![MLP (Multi-layer Perceptron) Classifier](confusion_matrices_png/confusion_matrix_MLP.png)
 
 #### LightGBM Classifier
-![LightGBM Classifier](confusion_matrix_LightGBM_Classifier.png)
+![LightGBM Classifier](confusion_matrices_png/confusion_matrix_LightGBM.png)
 
 #### XGBoost Classifier
 
-![XGBoost Classifier](confusion_matrix_XGBoost_Classifier.png)
+![XGBoost Classifier](confusion_matrices_png/confusion_matrix_XGBoost.png)
 
 #### CatBoost CLassifier
 
-![CatBoost Classifier](confusion_matrix_CatBoost_Classifier.png)
+![CatBoost Classifier](confusion_matrices_png/confusion_matrix_CatBoost.png)
 
 #### Nearest Centroid
 
-![Nearest Centroid](confusion_matrix_Nearest_Centroind.png)
+![Nearest Centroid](confusion_matrices_png/confusion_matrix_NearestCentroid.png)
 
 #### Perceptron
 
-![Perceptron](confusion_matrix_Perceptron.png)
+![Perceptron](confusion_matrices_png/confusion_matrix_Perceptron.png)
 
 #### Perceptron With Manual Weights
 
-![Perceptron With Manual Weights](confusion_matrix_Perceptron_With_Manual_Weights.png)
+![Perceptron With Manual Weights](confusion_matrices_png/confusion_matrix_Perceptron_MW.png)
 
 #### Ridge Classifier
 
-![Ridge Classifier](confusion_matrix_Ridge_Classifier.png)
+![Ridge Classifier](confusion_matrices_png/confusion_matrix_RidgeClassifier.png)
 
 #### Ridge CLassifier With Manual Weights
 
-![Ridge CLassifier With Manual Weights](confusion_matrix_Ridge_CLassifier_With_Manual_Weights.png)
+![Ridge CLassifier With Manual Weights](confusion_matrices_png/confusion_matrix_RidgeClassifier_MW.png)
 
 #### Ridge Classifier CV
 
-![Ridge Classifier CV](confusion_matrix_Ridge_Clasifier_CV.png)
+![Ridge Classifier CV](confusion_matrices_png/confusion_matrix_RidgeClassifierCV.png)
 
 #### Ridge Classifier CV With Manual Weights
 
-![Ridge Classifier CV With Manual Weights](confusion_matrix_Ridge_Clasifier_CV_With_Manual_Weights.png)
+![Ridge Classifier CV With Manual Weights](confusion_matrices_png/confusion_matrix_RidgeClassifierCV_MW.png)
 
 #### Stacking Classifier
 
-![Stacking Classifier](confusion_matrix_Stacking_Classifier.png)
+![Stacking Classifier](confusion_matrices_png/confusion_matrix_StackingClassifier.png)
 
 #### Voting Classifier
 
-![Voting Classifier](confusion_matrix_Voting_Classifier.png)
+![Voting Classifier](confusion_matrices_png/confusion_matrix_VotingClassifier.png)
 
 #### Calibrated Classifier CV
 
-![Calibrated Classifier CV](confusion_matrix_Calibrated_Classifier_CV.png)
+![Calibrated Classifier CV](confusion_matrices_png/confusion_matrix_CalibratedClassifierCV.png)
 
 
 ### How to read the confusion matrix values
