@@ -1,13 +1,13 @@
 {
     "model_name": "BernoulliNB",
-    "training_accuracy": "94.35%",
-    "test_accuracy": "93.77%",
-    "training_f1_macro": "90.55",
-    "test_f1_macro": "89.07",
+    "training_accuracy": "94.22%",
+    "test_accuracy": "93.96%",
+    "training_f1_macro": "89.73",
+    "test_f1_macro": "88.80",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "32841/35341 = 92.93%",
-        "Necessary": "7035/7360 = 95.58%",
-        "Preferences": "1939/2378 = 81.54%",
-        "Statistics": "40477/42683 = 94.83%"
+        "Marketing": "45432/48957 = 92.80%",
+        "Necessary": "9832/10368 = 94.83%",
+        "Preferences": "2610/3120 = 83.65%",
+        "Statistics": "56289/59054 = 95.32%"
     }
 }

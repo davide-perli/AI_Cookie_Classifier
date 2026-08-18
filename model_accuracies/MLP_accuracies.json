@@ -1,13 +1,13 @@
 {
     "model_name": "MLP",
-    "training_accuracy": "99.92%",
-    "test_accuracy": "99.11%",
-    "training_f1_macro": "99.81",
-    "test_f1_macro": "98.07",
+    "training_accuracy": "99.93%",
+    "test_accuracy": "99.18%",
+    "training_f1_macro": "99.82",
+    "test_f1_macro": "98.12",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "35087/35341 = 99.28%",
-        "Necessary": "7235/7360 = 98.30%",
-        "Preferences": "2276/2378 = 95.71%",
-        "Statistics": "42381/42683 = 99.29%"
+        "Marketing": "48661/48957 = 99.40%",
+        "Necessary": "10180/10368 = 98.19%",
+        "Preferences": "2972/3120 = 95.26%",
+        "Statistics": "58689/59054 = 99.38%"
     }
 }

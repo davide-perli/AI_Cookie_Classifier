@@ -1,13 +1,13 @@
 {
     "model_name": "PAC",
-    "training_accuracy": "98.15%",
-    "test_accuracy": "96.61%",
-    "training_f1_macro": "96.95",
-    "test_f1_macro": "94.13",
+    "training_accuracy": "97.92%",
+    "test_accuracy": "96.57%",
+    "training_f1_macro": "96.75",
+    "test_f1_macro": "94.17",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34283/35341 = 97.01%",
-        "Necessary": "7056/7360 = 95.87%",
-        "Preferences": "2130/2378 = 89.57%",
-        "Statistics": "41316/42683 = 96.80%"
+        "Marketing": "47270/48957 = 96.55%",
+        "Necessary": "9986/10368 = 96.32%",
+        "Preferences": "2716/3120 = 87.05%",
+        "Statistics": "57357/59054 = 97.13%"
     }
 }

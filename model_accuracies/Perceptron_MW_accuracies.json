@@ -1,13 +1,13 @@
 {
     "model_name": "Perceptron_MW",
-    "training_accuracy": "97.35%",
-    "test_accuracy": "95.40%",
-    "training_f1_macro": "95.66",
-    "test_f1_macro": "92.41",
+    "training_accuracy": "97.28%",
+    "test_accuracy": "95.50%",
+    "training_f1_macro": "95.69",
+    "test_f1_macro": "92.47",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "33949/35341 = 96.06%",
-        "Necessary": "7009/7360 = 95.23%",
-        "Preferences": "2086/2378 = 87.72%",
-        "Statistics": "40682/42683 = 95.31%"
+        "Marketing": "46847/48957 = 95.69%",
+        "Necessary": "9578/10368 = 92.38%",
+        "Preferences": "2619/3120 = 83.94%",
+        "Statistics": "56985/59054 = 96.50%"
     }
 }

@@ -1,13 +1,13 @@
 {
     "model_name": "CatBoost",
     "training_accuracy": "98.08%",
-    "test_accuracy": "97.83%",
-    "training_f1_macro": "96.89",
-    "test_f1_macro": "95.99",
+    "test_accuracy": "97.88%",
+    "training_f1_macro": "96.59",
+    "test_f1_macro": "96.08",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34505/35341 = 97.63%",
-        "Necessary": "7175/7360 = 97.49%",
-        "Preferences": "2148/2378 = 90.33%",
-        "Statistics": "42028/42683 = 98.47%"
+        "Marketing": "47870/48957 = 97.78%",
+        "Necessary": "10121/10368 = 97.62%",
+        "Preferences": "2803/3120 = 89.84%",
+        "Statistics": "58132/59054 = 98.44%"
     }
 }

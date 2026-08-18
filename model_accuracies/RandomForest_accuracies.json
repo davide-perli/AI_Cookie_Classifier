@@ -1,13 +1,13 @@
 {
     "model_name": "RandomForest",
-    "training_accuracy": "99.67%",
-    "test_accuracy": "98.03%",
-    "training_f1_macro": "98.94",
-    "test_f1_macro": "95.64",
+    "training_accuracy": "99.69%",
+    "test_accuracy": "98.24%",
+    "training_f1_macro": "98.98",
+    "test_f1_macro": "95.86",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34758/35341 = 98.35%",
-        "Necessary": "7077/7360 = 96.15%",
-        "Preferences": "2133/2378 = 89.70%",
-        "Statistics": "42061/42683 = 98.54%"
+        "Marketing": "48287/48957 = 98.63%",
+        "Necessary": "10031/10368 = 96.75%",
+        "Preferences": "2801/3120 = 89.78%",
+        "Statistics": "58240/59054 = 98.62%"
     }
 }

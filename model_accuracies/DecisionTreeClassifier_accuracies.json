@@ -1,13 +1,13 @@
 {
     "model_name": "DecisionTreeClassifier",
-    "training_accuracy": "99.70%",
-    "test_accuracy": "98.04%",
-    "training_f1_macro": "99.25",
-    "test_f1_macro": "95.90",
+    "training_accuracy": "99.72%",
+    "test_accuracy": "98.11%",
+    "training_f1_macro": "99.27",
+    "test_f1_macro": "95.84",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34722/35341 = 98.25%",
-        "Necessary": "7103/7360 = 96.51%",
-        "Preferences": "2140/2378 = 89.99%",
-        "Statistics": "42073/42683 = 98.57%"
+        "Marketing": "48168/48957 = 98.39%",
+        "Necessary": "9995/10368 = 96.40%",
+        "Preferences": "2765/3120 = 88.62%",
+        "Statistics": "58275/59054 = 98.68%"
     }
 }

@@ -1,13 +1,13 @@
 {
     "model_name": "ComplementNB",
-    "training_accuracy": "95.19%",
-    "test_accuracy": "94.76%",
-    "training_f1_macro": "92.01",
-    "test_f1_macro": "91.22",
+    "training_accuracy": "95.08%",
+    "test_accuracy": "94.84%",
+    "training_f1_macro": "91.69",
+    "test_f1_macro": "91.02",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "33054/35341 = 93.53%",
-        "Necessary": "7204/7360 = 97.88%",
-        "Preferences": "2122/2378 = 89.23%",
-        "Statistics": "40786/42683 = 95.56%"
+        "Marketing": "45816/48957 = 93.58%",
+        "Necessary": "10210/10368 = 98.48%",
+        "Preferences": "2767/3120 = 88.69%",
+        "Statistics": "56437/59054 = 95.57%"
     }
 }

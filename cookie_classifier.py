@@ -34,7 +34,7 @@ MODEL_ACCURACY_DATA_DIR = Path('model_accuracies')
 # hasing pe date
 
 class CookieDataLoader:
-    def __init__(self, csv_path='classified_cookies.csv', test_size=0.1, random_state=42):
+    def __init__(self, csv_path='updated_classified_cookies.csv', test_size=0.1, random_state=42):
         self.csv_path = csv_path
         self.test_size = test_size
         self.random_state = random_state
@@ -876,7 +876,7 @@ class CookieClassifier:
             )
 
         elif self.model_name == "NearestCentroid": # 90.17% 
-            self.selector_nc = SelectKBest(chi2, k=3000) 
+            self.selector_nc = SelectKBest(chi2, k=2000) 
             Xtr = self.selector_nc.fit_transform(self.X_train_vec, self.y_train) 
             Xte = self.selector_nc.transform(self.X_test_vec)
 
@@ -1201,26 +1201,26 @@ with open("cookie_classifier.onnx", "wb") as f:
 
 models_to_run = [
     # "MLP",                    # 98.81%
-    "KNN",                    # 95.18%
-    "LogisticRegression",     # 93.72%
-    "LogisticRegression_MW",  # 95.52%  94.14%
-    "SGD",                    # 97.62%  97.55%
-    "PAC",                    # 97.35%  97.31%
-    "LinearSVC",              # 97.22%  
-    "LinearSVC_MW",           # 97.37%
-    "RandomForest",           # 98.18%
-    "DecisionTreeClassifier", # 98.17%
-    "AdaBoost",               # 94.26%
-    "MultinomialNB",          # 94.27%
-    "ComplementNB",           # 94.87%
-    "BernoulliNB",            # 93.75%
-    "StackingClassifier",     # 95.76% 95.38%
-    "VotingClassifier",       # 96.40% 95.20%
-    "LightGBM",               # 98.48%
-    "XGBoost",                # 97.52%
-    "CatBoost",               # 97.73%
-    "Perceptron",             # 96.04% 95.94%
-    "Perceptron_MW",          # 96.28% 96.05%
+    # "KNN",                    # 95.18%
+    # "LogisticRegression",     # 93.72%
+    # "LogisticRegression_MW",  # 95.52%  94.14%
+    # "SGD",                    # 97.62%  97.55%
+    # "PAC",                    # 97.35%  97.31%
+    # "LinearSVC",              # 97.22%  
+    # "LinearSVC_MW",           # 97.37%
+    # "RandomForest",           # 98.18%
+    # "DecisionTreeClassifier", # 98.17%
+    # "AdaBoost",               # 94.26%
+    # "MultinomialNB",          # 94.27%
+    # "ComplementNB",           # 94.87%
+    # "BernoulliNB",            # 93.75%
+    # "StackingClassifier",     # 95.76% 95.38%
+    # "VotingClassifier",       # 96.40% 95.20%
+    # "LightGBM",               # 98.48%
+    # "XGBoost",                # 97.52%
+    # "CatBoost",               # 97.73%
+    # "Perceptron",             # 96.04% 95.94%
+    # "Perceptron_MW",          # 96.28% 96.05%
     "NearestCentroid",        # 78.14%
     "RidgeClassifier",        # 95.25%
     "RidgeClassifier_MW",     # 96.41%

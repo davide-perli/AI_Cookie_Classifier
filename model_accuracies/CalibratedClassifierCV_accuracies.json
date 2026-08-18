@@ -1,13 +1,13 @@
 {
     "model_name": "CalibratedClassifierCV",
-    "training_accuracy": "97.83%",
-    "test_accuracy": "96.57%",
-    "training_f1_macro": "96.81",
-    "test_f1_macro": "94.58",
+    "training_accuracy": "97.71%",
+    "test_accuracy": "96.56%",
+    "training_f1_macro": "96.56",
+    "test_f1_macro": "94.53",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34067/35341 = 96.40%",
-        "Necessary": "7035/7360 = 95.58%",
-        "Preferences": "2079/2378 = 87.43%",
-        "Statistics": "41567/42683 = 97.39%"
+        "Marketing": "47202/48957 = 96.42%",
+        "Necessary": "9952/10368 = 95.99%",
+        "Preferences": "2684/3120 = 86.03%",
+        "Statistics": "57476/59054 = 97.33%"
     }
 }

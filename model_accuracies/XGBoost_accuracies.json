@@ -1,13 +1,13 @@
 {
     "model_name": "XGBoost",
-    "training_accuracy": "97.67%",
-    "test_accuracy": "97.52%",
-    "training_f1_macro": "96.41",
-    "test_f1_macro": "95.90",
+    "training_accuracy": "97.62%",
+    "test_accuracy": "97.47%",
+    "training_f1_macro": "96.13",
+    "test_f1_macro": "95.77",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34346/35341 = 97.18%",
-        "Necessary": "7007/7360 = 95.20%",
-        "Preferences": "2114/2378 = 88.90%",
-        "Statistics": "42117/42683 = 98.67%"
+        "Marketing": "47564/48957 = 97.15%",
+        "Necessary": "9972/10368 = 96.18%",
+        "Preferences": "2747/3120 = 88.04%",
+        "Statistics": "58147/59054 = 98.46%"
     }
 }

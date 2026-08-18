@@ -1,13 +1,13 @@
 {
     "model_name": "LightGBM",
-    "training_accuracy": "99.50%",
-    "test_accuracy": "98.41%",
-    "training_f1_macro": "98.89",
-    "test_f1_macro": "96.36",
+    "training_accuracy": "99.55%",
+    "test_accuracy": "98.59%",
+    "training_f1_macro": "99.03",
+    "test_f1_macro": "96.64",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34895/35341 = 98.74%",
-        "Necessary": "7123/7360 = 96.78%",
-        "Preferences": "2123/2378 = 89.28%",
-        "Statistics": "42224/42683 = 98.92%"
+        "Marketing": "48420/48957 = 98.90%",
+        "Necessary": "10065/10368 = 97.08%",
+        "Preferences": "2771/3120 = 88.81%",
+        "Statistics": "58533/59054 = 99.12%"
     }
 }

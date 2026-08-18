@@ -1,13 +1,13 @@
 {
     "model_name": "VotingClassifier",
-    "training_accuracy": "95.38%",
-    "test_accuracy": "95.11%",
-    "training_f1_macro": "92.69",
-    "test_f1_macro": "91.96",
+    "training_accuracy": "95.67%",
+    "test_accuracy": "95.47%",
+    "training_f1_macro": "93.04",
+    "test_f1_macro": "92.71",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "34075/35341 = 96.42%",
-        "Necessary": "7178/7360 = 97.53%",
-        "Preferences": "2090/2378 = 87.89%",
-        "Statistics": "40126/42683 = 94.01%"
+        "Marketing": "47323/48957 = 96.66%",
+        "Necessary": "10101/10368 = 97.42%",
+        "Preferences": "2677/3120 = 85.80%",
+        "Statistics": "55898/59054 = 94.66%"
     }
 }
