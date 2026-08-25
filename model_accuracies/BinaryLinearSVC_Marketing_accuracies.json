@@ -1,0 +1,11 @@
+{
+    "model_name": "BinaryLinearSVC",
+    "training_accuracy": "98.69%",
+    "test_accuracy": "97.92%",
+    "training_f1_macro": "98.64",
+    "test_f1_macro": "97.83",
+    "per_category_accuracy(correct/total)": {
+        "0": "71212/72542 = 98.17%",
+        "1": "47754/48957 = 97.54%"
+    }
+}

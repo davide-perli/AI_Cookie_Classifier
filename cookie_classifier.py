@@ -20,6 +20,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer, normalize
+from sklearn.multiclass import OneVsRestClassifier
 from scipy.sparse import hstack
 
 from skl2onnx import convert_sklearn 
@@ -391,7 +392,7 @@ class CookieDataLoader:
         plt.close()
 
 class CookieClassifier:
-    def __init__(self, loader, model_name="MLP", use_custom_weights=False, max_features=80000, k_best=None, max_features_chars=False, k_best_chars=None):
+    def __init__(self, loader, model_name="MLP", use_custom_weights=False, max_features=80000, k_best=None, max_features_chars=False, k_best_chars=None, binary_category=None):
         self.loader = loader
         # Train/Test data vectorized to reuse
         self.X_train_vec = loader.X_train_vec
@@ -401,6 +402,7 @@ class CookieClassifier:
         self.max_features = None if max_features is True else max_features
         self.k_best = k_best
         self.mlp_label_encoder = None
+        self.binary_category = binary_category
         # Handle char max_features: True -> None (all char features), False -? skip
         self.max_features_chars = None if max_features_chars is True else max_features_chars
         self.k_best_chars = k_best_chars
@@ -422,8 +424,20 @@ class CookieClassifier:
     def _prepare_text(self):
         self.X_train_text = self.loader.combine_features(self.loader.X_train_raw)
         self.X_test_text = self.loader.combine_features(self.loader.X_test_raw)
-        self.y_train = self.loader.y_train
-        self.y_test = self.loader.y_test
+
+        if self.binary_category is None:
+            self.y_train = self.loader.y_train
+            self.y_test = self.loader.y_test
+        # Binary classifier: target category = 1, everything else = 0
+        else:
+            self.y_train = (
+                self.loader.y_train == self.binary_category
+            ).astype(np.int8)
+
+            self.y_test = (
+                self.loader.y_test == self.binary_category
+            ).astype(np.int8)
+            
 
 
     def _select_top_features(self):
@@ -474,17 +488,25 @@ class CookieClassifier:
                     hidden_layer_sizes=(250, 64),   
                     activation='relu', # tanh has 98.70%
                     solver='adam',              
-                    alpha=1e-3,                 
+                    alpha=7e-4,                 
                     batch_size=8192,
-                    learning_rate_init=0.01,
+                    learning_rate_init=0.01,  # 0.003
                     max_iter=200,
                     verbose=True,
                     early_stopping=True,
-                    validation_fraction=0.01,
+                    validation_fraction=0.01, # 0.1
                     beta_1=0.9,
                     epsilon=1e-8,    
-                    n_iter_no_change=10,
+                    n_iter_no_change=10, # 40
                     random_state=42,
+            )
+        elif self.model_name == "BinaryLinearSVC":
+            self.model = LinearSVC(
+                C=1.3,
+                class_weight="balanced",
+                max_iter=20000,
+                random_state=42,
+                penalty="l1"
             )
         elif self.model_name == "KNN": # 95.18%
             def KNN_custom_weights(distances):
@@ -542,19 +564,19 @@ class CookieClassifier:
             )
         elif self.model_name == "LinearSVC": # 97.22%
             self.model = LinearSVC(
-                C=1.3,
+                C=1.2,
                 class_weight='balanced',
                 max_iter=20000,
-                random_state=0,
+                random_state=42,
                 penalty='l1'
             )
         elif self.model_name == "LinearSVC_MW": # 97.37%
             self.model = LinearSVC(  
-                C=0.6,
+                C=1.3, # 1.0 best for accuracy
                 max_iter=20000,
-                random_state=0,
+                random_state=42,
                 penalty='l1',
-                class_weight={'Necessary': 3.5, 'Preferences': 2.7, 'Statistics': 1.7, 'Marketing': 1.0},
+                class_weight={'Necessary': 3.0, 'Preferences': 3.7, 'Statistics': 1.7, 'Marketing': 1.0},
             )
         elif self.model_name == "RandomForest": # 98.18%
             self.model = RandomForestClassifier(
@@ -1011,7 +1033,11 @@ class CookieClassifier:
         if self.model_name == "MLP": # 98.77%
             self.mlp_label_encoder = LabelEncoder()
             self.y_train_mlp = self.mlp_label_encoder.fit_transform(self.y_train)
-            self.model.fit(self.X_train_vec, self.y_train_mlp)
+            # class_weights = {"Marketing": 1.0, "Necessary": 3.5, "Preferences": 3.5, "Statistics": 1.2}
+            # self.sample_weights = np.array([class_weights[label] for label in self.y_train])
+            self.model.fit(self.X_train_vec, self.y_train_mlp)#, sample_weight=self.sample_weights)
+        elif self.model_name == "BinaryLinearSVC":
+            self.model.fit(self.X_train_vec, self.y_train)
         elif self.model_name == "KNN": # 95.18%
             self._reduce_for_knn()
             self.model.fit(self.X_train_vec, self.y_train)
@@ -1101,7 +1127,16 @@ class CookieClassifier:
         print(f"{self.model_name} - Training F1: {train_f1*100:.2f}%, Test F1: {test_f1*100:.2f}%")
 
         # Confusion matrix (saved as PDF + PNG, same style as evaluate_model())
-        classes = sorted(set(self.y_train) | set(self.y_test) | set(test_pred))
+        if self.binary_category is not None:
+            classes = [0, 1]
+
+            class_names = [
+                f"Not {self.binary_category}",
+                self.binary_category
+            ]
+        else:
+            classes = sorted(set(self.y_train) | set(self.y_test) | set(test_pred))
+            class_names = classes
         conf_matrix = confusion_matrix(self.y_test, test_pred, labels=classes)
 
         print(f"\nConfusion Matrix ({self.model_name}):")
@@ -1119,7 +1154,7 @@ class CookieClassifier:
             print(f"  {cat}: {correct}/{total} = {acc:.2f}%")
 
         plt.figure(figsize=(10, 8))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
         plt.title(
@@ -1131,7 +1166,10 @@ class CookieClassifier:
         plt.yticks(rotation=0)
         plt.tight_layout()
 
-        safe_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', str(self.model_name)).strip('_')
+        if self.binary_category is not None:
+            safe_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', f"{self.model_name}_{self.binary_category}").strip('_')
+        else:
+            safe_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', str(self.model_name)).strip('_')
 
         CONFUSION_MATRICES_PDF_DIR.mkdir(parents=True, exist_ok=True)
         CONFUSION_MATRICES_PNG_DIR.mkdir(parents=True, exist_ok=True)
@@ -1174,30 +1212,30 @@ CookieDataLoader.data_statistics(data_loader.df)
 #     k_best_chars=None
 # )
 
-classifier = CookieClassifier( # 99.15%
-    loader=data_loader,
-    model_name="MLP",
-    max_features=80000,
-    max_features_chars=20000,
-)
+# classifier = CookieClassifier( # 99.15%
+#     loader=data_loader,
+#     model_name="MLP",
+#     max_features=80000,
+#     max_features_chars=20000,
+# )
 
-joblib.dump({
-    "tfidf_word": data_loader.tfidf,
-    "tfidf_char": classifier.tfidf_chars,
-    "selector_word": getattr(classifier, "selector", None),
-    "selector_char": getattr(classifier, "selector_chars", None),
-}, "preprocessing.joblib")
+# joblib.dump({
+#     "tfidf_word": data_loader.tfidf,
+#     "tfidf_char": classifier.tfidf_chars,
+#     "selector_word": getattr(classifier, "selector", None),
+#     "selector_char": getattr(classifier, "selector_chars", None),
+# }, "preprocessing.joblib")
 
-n_features = classifier.X_train_vec.shape[1]
+# n_features = classifier.X_train_vec.shape[1]
 
-onnx_model = convert_sklearn(
-    classifier.model,
-    initial_types=[("input", FloatTensorType([None, n_features]))],
-    options={id(classifier.model): {"zipmap": False}},
-)
+# onnx_model = convert_sklearn(
+#     classifier.model,
+#     initial_types=[("input", FloatTensorType([None, n_features]))],
+#     options={id(classifier.model): {"zipmap": False}},
+# )
 
-with open("cookie_classifier.onnx", "wb") as f:
-    f.write(onnx_model.SerializeToString())
+# with open("cookie_classifier.onnx", "wb") as f:
+#     f.write(onnx_model.SerializeToString())
 
 models_to_run = [
     # "MLP",                    # 98.81%
@@ -1228,3 +1266,62 @@ models_to_run = [
     # "RidgeClassifierCV_MW",   # 96.26%
     # "CalibratedClassifierCV"  # 97.26%
 ]
+
+# for model_name in models_to_run:
+#     print("\n" + "=" * 80)
+#     print(f"TRYING: {model_name}")
+#     print("=" * 80)
+
+#     classifier = CookieClassifier(
+#         loader=data_loader,
+#         model_name=model_name
+#     )
+
+#     del classifier
+#     gc.collect()
+
+# model_name = "LinearSVC"
+# print("\n" + "=" * 80)
+# print(f"TRYING: {model_name}")
+# print("=" * 80)
+
+# classifier = CookieClassifier(
+#     loader=data_loader,
+#     model_name=model_name,
+#     max_features=80000,
+#     max_features_chars=30000
+# )
+
+# del classifier
+# gc.collect()
+
+# model_name = "LinearSVC_MW"
+# print("\n" + "=" * 80)
+# print(f"TRYING: {model_name}")
+# print("=" * 80)
+
+# classifier = CookieClassifier(
+#     loader=data_loader,
+#     model_name=model_name,
+#     max_features=80000,
+#     max_features_chars=30000
+# )
+
+# del classifier
+# gc.collect()
+
+# binary_categories = [
+#     "Necessary",
+#     "Preferences",
+#     "Statistics",
+#     "Marketing"
+# ]
+
+# for category in binary_categories:
+#     classifier = CookieClassifier(
+#         loader=data_loader,
+#         model_name="BinaryLinearSVC",
+#         max_features=80000,
+#         max_features_chars=20000,
+#         binary_category=category
+#     )
