@@ -1,0 +1,16 @@
+{
+    "model_name": "ParzenWindow",
+    "training_accuracy": "88.39%",
+    "test_accuracy": "90.71%",
+    "training_f1_macro": "88.17",
+    "test_f1_macro": "82.76",
+    "precision": "0.8221868311356357",
+    "recall": "0.8339027666246726",
+    "test_balanced_accuracy": "83.39",
+    "per_category_accuracy(correct/total)": {
+        "Marketing": "45210/48957 = 92.35%",
+        "Necessary": "8604/10368 = 82.99%",
+        "Preferences": "2066/3120 = 66.22%",
+        "Statistics": "54336/59054 = 92.01%"
+    }
+}

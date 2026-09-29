@@ -4,6 +4,9 @@
     "test_accuracy": "94.84%",
     "training_f1_macro": "91.69",
     "test_f1_macro": "91.02",
+    "precision": "0.8852084351214422",
+    "recall": "0.9407865153553338",
+    "test_balanced_accuracy": "0.9407865153553338",
     "per_category_accuracy(correct/total)": {
         "Marketing": "45816/48957 = 93.58%",
         "Necessary": "10210/10368 = 98.48%",

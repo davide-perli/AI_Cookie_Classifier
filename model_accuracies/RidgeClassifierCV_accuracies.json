@@ -2,12 +2,15 @@
     "model_name": "RidgeClassifierCV",
     "training_accuracy": "94.58%",
     "test_accuracy": "94.35%",
-    "training_f1_macro": "89.43",
-    "test_f1_macro": "88.89",
+    "training_f1_macro": "89.42",
+    "test_f1_macro": "88.86",
+    "precision": "0.8489719910853467",
+    "recall": "0.9457227044557783",
+    "test_balanced_accuracy": "0.9457227044557783",
     "per_category_accuracy(correct/total)": {
         "Marketing": "46442/48957 = 94.86%",
-        "Necessary": "10091/10368 = 97.33%",
-        "Preferences": "2892/3120 = 92.69%",
-        "Statistics": "55211/59054 = 93.49%"
+        "Necessary": "10089/10368 = 97.31%",
+        "Preferences": "2890/3120 = 92.63%",
+        "Statistics": "55209/59054 = 93.49%"
     }
 }

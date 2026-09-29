@@ -2,6 +2,7 @@ pandas
 numpy
 scipy
 scikit-learn
+scikit-activeml
 matplotlib
 seaborn
 wordcloud

@@ -1,13 +1,16 @@
 {
     "model_name": "LogisticRegression_MW",
-    "training_accuracy": "96.91%",
-    "test_accuracy": "96.10%",
-    "training_f1_macro": "95.09",
-    "test_f1_macro": "93.63",
+    "training_accuracy": "96.87%",
+    "test_accuracy": "95.89%",
+    "training_f1_macro": "94.95",
+    "test_f1_macro": "93.35",
+    "precision": "0.9262702653804572",
+    "recall": "0.9436366938654979",
+    "test_balanced_accuracy": "0.9436366938654979",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "47139/48957 = 96.29%",
-        "Necessary": "10211/10368 = 98.49%",
-        "Preferences": "2661/3120 = 85.29%",
-        "Statistics": "56750/59054 = 96.10%"
+        "Marketing": "47306/48957 = 96.63%",
+        "Necessary": "10223/10368 = 98.60%",
+        "Preferences": "2713/3120 = 86.96%",
+        "Statistics": "56261/59054 = 95.27%"
     }
 }

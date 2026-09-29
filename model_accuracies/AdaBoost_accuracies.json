@@ -1,13 +1,16 @@
 {
     "model_name": "AdaBoost",
-    "training_accuracy": "95.47%",
-    "test_accuracy": "94.01%",
-    "training_f1_macro": "89.79",
-    "test_f1_macro": "86.20",
+    "training_accuracy": "95.48%",
+    "test_accuracy": "93.98%",
+    "training_f1_macro": "89.80",
+    "test_f1_macro": "85.96",
+    "precision": "0.8978392599284438",
+    "recall": "0.8331175158627498",
+    "test_balanced_accuracy": "0.8331175158627498",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "46740/48957 = 95.47%",
-        "Necessary": "8755/10368 = 84.44%",
-        "Preferences": "1827/3120 = 58.56%",
-        "Statistics": "56894/59054 = 96.34%"
+        "Marketing": "46782/48957 = 95.56%",
+        "Necessary": "8719/10368 = 84.10%",
+        "Preferences": "1786/3120 = 57.24%",
+        "Statistics": "56899/59054 = 96.35%"
     }
 }

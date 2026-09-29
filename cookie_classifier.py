@@ -4,7 +4,7 @@ from collections import Counter
 from wordcloud import WordCloud
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, balanced_accuracy_score, precision_score, recall_score
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression, SGDClassifier, Perceptron, RidgeClassifier, RidgeClassifierCV
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, StackingClassifier, VotingClassifier
@@ -21,6 +21,7 @@ from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer, normalize
 from sklearn.multiclass import OneVsRestClassifier
+from skactiveml.classifier import ParzenWindowClassifier
 from scipy.sparse import hstack
 
 from skl2onnx import convert_sklearn 
@@ -84,11 +85,12 @@ class CookieDataLoader:
                 return 'long'
             
             # extract numbers
-            years = months = days = minutes = 0
+            years = months = days = hours = minutes = 0
             
             year_match = re.search(r'(\d+)\s*year', text)
             month_match = re.search(r'(\d+)\s*month', text)
             day_match = re.search(r'(\d+)\s*day', text)
+            hour_match = re.search(r'(\d+)\s*hour', text)
             minute_match = re.search(r'(\d+)\s*minute', text)
             
             if year_match:
@@ -97,10 +99,12 @@ class CookieDataLoader:
                 months = int(month_match.group(1))
             if day_match:
                 days = int(day_match.group(1))
+            if hour_match:
+                hours = int(hour_match.group(1))
             if minute_match:
                 minutes = int(minute_match.group(1))
             
-            total_days = years * 365 + months * 30 + days + minutes / (60 * 24)
+            total_days = years * 365 + months * 30 + days + hours / 24 + minutes / (60 * 24)
             
             if total_days > 1:
                 return 'long'
@@ -485,7 +489,7 @@ class CookieClassifier:
     def _prepare_model(self):
         if self.model_name == "MLP": # 98.81%
             self.model = MLPClassifier(
-                    hidden_layer_sizes=(250, 64),   
+                    hidden_layer_sizes=(250, 60),   
                     activation='relu', # tanh has 98.70%
                     solver='adam',              
                     alpha=7e-4,                 
@@ -518,6 +522,13 @@ class CookieClassifier:
                 metric='euclidean',     
                 algorithm='auto',
                 n_jobs=-1
+            )
+        elif self.model_name == "ParzenWindow": # 90.71%
+            self.model = ParzenWindowClassifier(
+                n_neighbors=4,
+                metric='cosine', # linear equally good , laplacian shuts the program down by exploding ram
+                missing_label=None,
+                random_state=42
             )
         elif self.model_name == "LogisticRegression": # 93.72%
             self.model = LogisticRegression(
@@ -1008,6 +1019,46 @@ class CookieClassifier:
         self.X_train_vec = self.normalizer.fit_transform(self.X_train_vec)
         self.X_test_vec = self.normalizer.transform(self.X_test_vec)
 
+    def _reduce_for_parzen_window(self):
+        self.svd_parzen = TruncatedSVD(n_components=128, random_state=42)
+        X_train_reduced = self.svd_parzen.fit_transform(self.X_train_vec)
+        X_test_reduced = self.svd_parzen.transform(self.X_test_vec)
+
+        self.normalizer_parzen = Normalizer(copy=False)
+        X_train_reduced = self.normalizer_parzen.fit_transform(X_train_reduced)
+        X_test_reduced = self.normalizer_parzen.transform(X_test_reduced)
+
+        max_training_samples = 40000
+        categories = self.y_train.unique()
+        samples_per_category = min(self.y_train.value_counts().min(), max_training_samples // len(categories))
+
+        rng = np.random.default_rng(42)
+        selected_indices = np.concatenate([
+            rng.choice(
+                np.flatnonzero(self.y_train.to_numpy() == category),
+                size=samples_per_category,
+                replace=False
+            )
+            for category in categories
+        ])
+        rng.shuffle(selected_indices)
+
+        X_train_reduced = X_train_reduced[selected_indices]
+        y_train_reduced = self.y_train.iloc[selected_indices].reset_index(drop=True)
+
+        # Keep balanced coverage of minority classes while restoring the
+        # original training distribution in Parzen's neighbor votes.
+        full_class_counts = self.y_train.value_counts()
+        sampled_class_counts = y_train_reduced.value_counts()
+        self.parzen_sample_weights = np.array([
+            full_class_counts[label] / sampled_class_counts[label]
+            for label in y_train_reduced
+        ], dtype=np.float32)
+
+        self.X_train_vec = X_train_reduced
+        self.X_test_vec = X_test_reduced
+        self.y_train_parzen = y_train_reduced
+
     def _reduce_for_adaboost(self):
         
         self.svd_ada = TruncatedSVD(n_components=300, random_state=42)
@@ -1041,6 +1092,9 @@ class CookieClassifier:
         elif self.model_name == "KNN": # 95.18%
             self._reduce_for_knn()
             self.model.fit(self.X_train_vec, self.y_train)
+        elif self.model_name == "ParzenWindow":
+            self._reduce_for_parzen_window()
+            self.model.fit(self.X_train_vec, self.y_train_parzen, sample_weight=self.parzen_sample_weights)
         elif self.model_name == "LogisticRegression": # 93.72%
             self.model.fit(self.X_train_vec, self.y_train)
         elif self.model_name == "LogisticRegression_MW": # 95.52%
@@ -1119,10 +1173,14 @@ class CookieClassifier:
         else:
             train_pred = self.model.predict(self.X_train_vec)
             test_pred = self.model.predict(self.X_test_vec)
-        train_acc = accuracy_score(self.y_train, train_pred)
+        evaluation_y_train = getattr(self, "y_train_parzen", self.y_train)
+        train_acc = accuracy_score(evaluation_y_train, train_pred)
         test_acc = accuracy_score(self.y_test, test_pred)
-        train_f1 = f1_score(self.y_train, train_pred, average='macro', zero_division=0)
+        train_f1 = f1_score(evaluation_y_train, train_pred, average='macro', zero_division=0)
         test_f1 = f1_score(self.y_test, test_pred, average='macro', zero_division=0)
+        precision = precision_score(self.y_test, test_pred, average='macro', zero_division=0)
+        recall = recall_score(self.y_test, test_pred, average='macro', zero_division=0)
+        test_balanced_acc = balanced_accuracy_score(self.y_test, test_pred)
         print(f"{self.model_name} - Training Accuracy: {train_acc*100:.2f}%, Test Accuracy: {test_acc*100:.2f}%")
         print(f"{self.model_name} - Training F1: {train_f1*100:.2f}%, Test F1: {test_f1*100:.2f}%")
 
@@ -1190,9 +1248,11 @@ class CookieClassifier:
             "test_accuracy": f"{test_acc*100:.2f}%",
             "training_f1_macro": f"{train_f1*100:.2f}" if train_f1 is not None else None,
             "test_f1_macro": f"{test_f1*100:.2f}" if test_f1 is not None else None,
+            "precision": f"{precision}" if precision is not None else None,
+            "recall": f"{recall}" if recall is not None else None,
+            "test_balanced_accuracy": f"{test_balanced_acc*100:.2f}" if test_balanced_acc is not None else None,
             "per_category_accuracy(correct/total)": per_category_accuracy
         }
-
         with open(model_accuracy_path, "w") as f:
             json.dump(results, f, indent=4)
 
@@ -1203,82 +1263,30 @@ data_loader = CookieDataLoader()
 data_loader.build_tfidf()
 CookieDataLoader.data_statistics(data_loader.df)
 
-# CookieClassifier(
-#     loader=data_loader,
-#     model_name="MLP",
-#     max_features=80000,
-#     k_best=None,
-#     max_features_chars=False,
-#     k_best_chars=None
-# )
+classifier = CookieClassifier( # 99.21%
+    loader=data_loader,
+    model_name="MLP",
+    max_features=80000,
+    max_features_chars=20000,
+)
 
-# classifier = CookieClassifier( # 99.15%
-#     loader=data_loader,
-#     model_name="MLP",
-#     max_features=80000,
-#     max_features_chars=20000,
-# )
+joblib.dump({
+    "tfidf_word": data_loader.tfidf,
+    "tfidf_char": classifier.tfidf_chars,
+    "selector_word": getattr(classifier, "selector", None),
+    "selector_char": getattr(classifier, "selector_chars", None),
+}, "preprocessing.joblib")
 
-# joblib.dump({
-#     "tfidf_word": data_loader.tfidf,
-#     "tfidf_char": classifier.tfidf_chars,
-#     "selector_word": getattr(classifier, "selector", None),
-#     "selector_char": getattr(classifier, "selector_chars", None),
-# }, "preprocessing.joblib")
+n_features = classifier.X_train_vec.shape[1]
 
-# n_features = classifier.X_train_vec.shape[1]
+onnx_model = convert_sklearn(
+    classifier.model,
+    initial_types=[("input", FloatTensorType([None, n_features]))],
+    options={id(classifier.model): {"zipmap": False}},
+)
 
-# onnx_model = convert_sklearn(
-#     classifier.model,
-#     initial_types=[("input", FloatTensorType([None, n_features]))],
-#     options={id(classifier.model): {"zipmap": False}},
-# )
-
-# with open("cookie_classifier.onnx", "wb") as f:
-#     f.write(onnx_model.SerializeToString())
-
-models_to_run = [
-    # "MLP",                    # 98.81%
-    # "KNN",                    # 95.18%
-    # "LogisticRegression",     # 93.72%
-    # "LogisticRegression_MW",  # 95.52%  94.14%
-    # "SGD",                    # 97.62%  97.55%
-    # "PAC",                    # 97.35%  97.31%
-    # "LinearSVC",              # 97.22%  
-    # "LinearSVC_MW",           # 97.37%
-    # "RandomForest",           # 98.18%
-    # "DecisionTreeClassifier", # 98.17%
-    # "AdaBoost",               # 94.26%
-    # "MultinomialNB",          # 94.27%
-    # "ComplementNB",           # 94.87%
-    # "BernoulliNB",            # 93.75%
-    # "StackingClassifier",     # 95.76% 95.38%
-    # "VotingClassifier",       # 96.40% 95.20%
-    # "LightGBM",               # 98.48%
-    # "XGBoost",                # 97.52%
-    # "CatBoost",               # 97.73%
-    # "Perceptron",             # 96.04% 95.94%
-    # "Perceptron_MW",          # 96.28% 96.05%
-    # "NearestCentroid",        # 78.14%
-    # "RidgeClassifier",        # 95.25%
-    # "RidgeClassifier_MW",     # 96.41%
-    # "RidgeClassifierCV",      # 95.00%
-    # "RidgeClassifierCV_MW",   # 96.26%
-    # "CalibratedClassifierCV"  # 97.26%
-]
-
-# for model_name in models_to_run:
-#     print("\n" + "=" * 80)
-#     print(f"TRYING: {model_name}")
-#     print("=" * 80)
-
-#     classifier = CookieClassifier(
-#         loader=data_loader,
-#         model_name=model_name
-#     )
-
-#     del classifier
-#     gc.collect()
+with open("cookie_classifier.onnx", "wb") as f:
+    f.write(onnx_model.SerializeToString())
 
 # model_name = "LinearSVC"
 # print("\n" + "=" * 80)
@@ -1304,7 +1312,22 @@ models_to_run = [
 #     loader=data_loader,
 #     model_name=model_name,
 #     max_features=80000,
-#     max_features_chars=30000
+#     max_features_chars=20000
+# )
+
+# del classifier
+# gc.collect()
+
+# model_name = "ParzenWindow"
+# print("\n" + "=" * 80)
+# print(f"TRYING: {model_name}")
+# print("=" * 80)
+
+# classifier = CookieClassifier(
+#     loader=data_loader,
+#     model_name=model_name,
+#     max_features=80000,
+#     max_features_chars=20000
 # )
 
 # del classifier
@@ -1325,3 +1348,45 @@ models_to_run = [
 #         max_features_chars=20000,
 #         binary_category=category
 #     )
+
+
+models_to_run = [
+#     "KNN",                    # 95.18%
+    # "ParzenWindow",
+#     "LogisticRegression",     # 93.72%
+#     "LogisticRegression_MW",  # 95.52%  94.14%
+#     "SGD",                    # 97.62%  97.55%
+#     "PAC",                    # 97.35%  97.31%
+#     "RandomForest",           # 98.18%
+#     "DecisionTreeClassifier", # 98.17%
+#     "AdaBoost",               # 94.26%
+#     "MultinomialNB",          # 94.27%
+#     "ComplementNB",           # 94.87%
+#     "BernoulliNB",            # 93.75%
+#     "StackingClassifier",     # 95.76% 95.38%
+#     "VotingClassifier",       # 96.40% 95.20%
+#     "LightGBM",               # 98.48%
+#     "XGBoost",                # 97.52%
+#     "CatBoost",               # 97.73%
+#     "Perceptron",             # 96.04% 95.94%
+#     "Perceptron_MW",          # 96.28% 96.05%
+#     "NearestCentroid",        # 78.14%
+#     "RidgeClassifier",        # 95.25%
+#     "RidgeClassifier_MW",     # 96.41%
+#     "RidgeClassifierCV",      # 95.00%
+#     "RidgeClassifierCV_MW",   # 96.26%
+#     "CalibratedClassifierCV"  # 97.26%
+]
+
+# for model_name in models_to_run:
+#     print("\n" + "=" * 80)
+#     print(f"TRYING: {model_name}")
+#     print("=" * 80)
+
+#     classifier = CookieClassifier(
+#         loader=data_loader,
+#         model_name=model_name
+#     )
+
+#     del classifier
+#     gc.collect()

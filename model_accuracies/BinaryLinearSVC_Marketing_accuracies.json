@@ -3,9 +3,12 @@
     "training_accuracy": "98.69%",
     "test_accuracy": "97.92%",
     "training_f1_macro": "98.64",
-    "test_f1_macro": "97.83",
+    "test_f1_macro": "97.84",
+    "precision": "0.9781837963995581",
+    "recall": "0.9785943494875939",
+    "test_balanced_accuracy": "0.9785943494875939",
     "per_category_accuracy(correct/total)": {
-        "0": "71212/72542 = 98.17%",
-        "1": "47754/48957 = 97.54%"
+        "0": "71213/72542 = 98.17%",
+        "1": "47758/48957 = 97.55%"
     }
 }

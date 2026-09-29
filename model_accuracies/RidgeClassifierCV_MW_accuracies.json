@@ -3,11 +3,14 @@
     "training_accuracy": "95.49%",
     "test_accuracy": "95.39%",
     "training_f1_macro": "92.60",
-    "test_f1_macro": "92.31",
+    "test_f1_macro": "92.30",
+    "precision": "0.9172061192306697",
+    "recall": "0.9304204528007634",
+    "test_balanced_accuracy": "0.9304204528007634",
     "per_category_accuracy(correct/total)": {
         "Marketing": "46270/48957 = 94.51%",
-        "Necessary": "10012/10368 = 96.57%",
-        "Preferences": "2642/3120 = 84.68%",
-        "Statistics": "56977/59054 = 96.48%"
+        "Necessary": "10011/10368 = 96.56%",
+        "Preferences": "2640/3120 = 84.62%",
+        "Statistics": "56978/59054 = 96.48%"
     }
 }

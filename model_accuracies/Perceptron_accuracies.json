@@ -1,13 +1,16 @@
 {
     "model_name": "Perceptron",
-    "training_accuracy": "97.24%",
-    "test_accuracy": "95.22%",
-    "training_f1_macro": "95.28",
-    "test_f1_macro": "91.30",
+    "training_accuracy": "97.32%",
+    "test_accuracy": "95.31%",
+    "training_f1_macro": "95.33",
+    "test_f1_macro": "91.50",
+    "precision": "0.9035400701414478",
+    "recall": "0.9278768453556276",
+    "test_balanced_accuracy": "0.9278768453556276",
     "per_category_accuracy(correct/total)": {
-        "Marketing": "46881/48957 = 95.76%",
-        "Necessary": "9777/10368 = 94.30%",
-        "Preferences": "2564/3120 = 82.18%",
-        "Statistics": "56470/59054 = 95.62%"
+        "Marketing": "46834/48957 = 95.66%",
+        "Necessary": "9575/10368 = 92.35%",
+        "Preferences": "2720/3120 = 87.18%",
+        "Statistics": "56666/59054 = 95.96%"
     }
 }

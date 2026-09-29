@@ -4,8 +4,11 @@
     "test_accuracy": "99.36%",
     "training_f1_macro": "98.72",
     "test_f1_macro": "98.00",
+    "precision": "0.969147497512873",
+    "recall": "0.9914273973430978",
+    "test_balanced_accuracy": "0.9914273973430978",
     "per_category_accuracy(correct/total)": {
-        "0": "110471/111131 = 99.41%",
+        "0": "110469/111131 = 99.40%",
         "1": "10252/10368 = 98.88%"
     }
 }
