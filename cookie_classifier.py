@@ -1,4 +1,4 @@
-import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc, joblib
+import pandas as pd, matplotlib.pyplot as plt, seaborn as sns, numpy as np, re, json, lightgbm as lgb, xgboost as xgb, catboost, gc, joblib, torch
 from pathlib import Path
 from collections import Counter
 from wordcloud import WordCloud
@@ -32,6 +32,9 @@ CONFUSION_MATRICES_PNG_DIR = Path('confusion_matrices_png')
 DATA_ANALYSIS_PDF_DIR = Path('training_data_analysis_pdf')
 DATA_ANALYSIS_PNG_DIR = Path('training_data_analysis_png')
 MODEL_ACCURACY_DATA_DIR = Path('model_accuracies')
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"USING DEVICE: {device}")
 
 # hasing pe date
 
@@ -791,7 +794,7 @@ class CookieClassifier:
                 force_col_wise=True
             )
 
-        elif self.model_name == "XGBoost": # 97.52%
+        elif self.model_name == "XGBoost": # 98.80%
 
             self.selector_xgb = SelectKBest(chi2, k=8000)
 
@@ -810,17 +813,21 @@ class CookieClassifier:
                 self.X_train_vec,
                 y_train_encoded,
                 test_size=0.1,
-                random_state=42
+                random_state=42,
+                stratify=y_train_encoded
             )
 
             self.model = xgb.XGBClassifier(
                 objective='multi:softmax',
                 num_class=len(self.xgb_label_encoder.classes_),
-                n_estimators=300,
-                max_depth=10,
-                early_stopping_rounds=20,
-                tree_method='hist',
-                random_state=0,
+                n_estimators=200, 
+                max_depth=30, 
+                subsample=0.6,
+                early_stopping_rounds=10, 
+                tree_method='exact',
+                reg_alpha=0.02,
+                reg_lambda=0.2,
+                random_state=42,
                 n_jobs=-1,
                 eval_metric='mlogloss'
             )
@@ -1263,30 +1270,30 @@ data_loader = CookieDataLoader()
 data_loader.build_tfidf()
 CookieDataLoader.data_statistics(data_loader.df)
 
-classifier = CookieClassifier( # 99.21%
-    loader=data_loader,
-    model_name="MLP",
-    max_features=80000,
-    max_features_chars=20000,
-)
+# classifier = CookieClassifier( # 99.21%
+#     loader=data_loader,
+#     model_name="MLP",
+#     max_features=80000,
+#     max_features_chars=20000,
+# )
 
-joblib.dump({
-    "tfidf_word": data_loader.tfidf,
-    "tfidf_char": classifier.tfidf_chars,
-    "selector_word": getattr(classifier, "selector", None),
-    "selector_char": getattr(classifier, "selector_chars", None),
-}, "preprocessing.joblib")
+# joblib.dump({
+#     "tfidf_word": data_loader.tfidf,
+#     "tfidf_char": classifier.tfidf_chars,
+#     "selector_word": getattr(classifier, "selector", None),
+#     "selector_char": getattr(classifier, "selector_chars", None),
+# }, "preprocessing.joblib")
 
-n_features = classifier.X_train_vec.shape[1]
+# n_features = classifier.X_train_vec.shape[1]
 
-onnx_model = convert_sklearn(
-    classifier.model,
-    initial_types=[("input", FloatTensorType([None, n_features]))],
-    options={id(classifier.model): {"zipmap": False}},
-)
+# onnx_model = convert_sklearn(
+#     classifier.model,
+#     initial_types=[("input", FloatTensorType([None, n_features]))],
+#     options={id(classifier.model): {"zipmap": False}},
+# )
 
-with open("cookie_classifier.onnx", "wb") as f:
-    f.write(onnx_model.SerializeToString())
+# with open("cookie_classifier.onnx", "wb") as f:
+#     f.write(onnx_model.SerializeToString())
 
 # model_name = "LinearSVC"
 # print("\n" + "=" * 80)
@@ -1333,6 +1340,21 @@ with open("cookie_classifier.onnx", "wb") as f:
 # del classifier
 # gc.collect()
 
+model_name = "XGBoost"
+print("\n" + "=" * 80)
+print(f"TRYING: {model_name}")
+print("=" * 80)
+
+classifier = CookieClassifier(
+    loader=data_loader,
+    model_name=model_name,
+    max_features=80000,
+    max_features_chars=7000
+)
+
+del classifier
+gc.collect()
+
 # binary_categories = [
 #     "Necessary",
 #     "Preferences",
@@ -1352,7 +1374,6 @@ with open("cookie_classifier.onnx", "wb") as f:
 
 models_to_run = [
 #     "KNN",                    # 95.18%
-    # "ParzenWindow",
 #     "LogisticRegression",     # 93.72%
 #     "LogisticRegression_MW",  # 95.52%  94.14%
 #     "SGD",                    # 97.62%  97.55%
@@ -1366,7 +1387,6 @@ models_to_run = [
 #     "StackingClassifier",     # 95.76% 95.38%
 #     "VotingClassifier",       # 96.40% 95.20%
 #     "LightGBM",               # 98.48%
-#     "XGBoost",                # 97.52%
 #     "CatBoost",               # 97.73%
 #     "Perceptron",             # 96.04% 95.94%
 #     "Perceptron_MW",          # 96.28% 96.05%
