@@ -18,12 +18,12 @@ def main() -> None:
         with json_file.open("r", encoding="utf-8") as file_handle:
             data = json.load(file_handle)
 
-        test_f1_macro = data.get("test_f1_macro", "0")
-        if isinstance(test_f1_macro, str):
-            test_f1_macro = test_f1_macro.rstrip("%")
+        test_accuracy = data.get("test_accuracy", "0")
+        if isinstance(test_accuracy, str):
+            test_accuracy = test_accuracy.rstrip("%")
 
         try:
-            score = float(test_f1_macro)
+            score = float(test_accuracy)
         except (TypeError, ValueError):
             score = float("-inf")
 
